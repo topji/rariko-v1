@@ -22,6 +22,7 @@ import { formatUSDT, formatCurrency } from '../../lib/utils'
 import { toast } from 'react-hot-toast'
 import { useRouter } from 'next/navigation'
 import { Navigation } from '../../components/Navigation'
+import { PageHeader } from '../../components/PageHeader'
 
 interface Token {
   id: string
@@ -203,29 +204,24 @@ export default function SwapPage() {
   return (
     <div className="min-h-screen bg-gray-900">
       {/* Header */}
-      <div className="bg-gray-800 border-b border-gray-700 px-4 py-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleBack}
-              icon={<ArrowLeft className="w-5 h-5" />}
-            >
-              Back
-            </Button>
-            <h1 className="text-lg font-semibold text-white">Swap Tokens</h1>
-          </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setShowSettings(!showSettings)}
-            icon={<Settings className="w-5 h-5" />}
-          >
-            Settings
-          </Button>
-        </div>
-      </div>
+      <PageHeader>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleBack}
+          icon={<ArrowLeft className="w-5 h-5" />}
+        >
+          Back
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setShowSettings(!showSettings)}
+          icon={<Settings className="w-5 h-5" />}
+        >
+          Settings
+        </Button>
+      </PageHeader>
 
       <div className="px-4 py-6 space-y-6">
         {step === 'input' && (

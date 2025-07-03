@@ -16,7 +16,11 @@ import {
   Share2,
   X,
   Check,
+  LogOut,
+  Key,
+  Download,
 } from 'lucide-react'
+import { PageHeader } from '../../components/PageHeader'
 
 const mockReferData = {
   inviteCode: 'GVV5KNL',
@@ -44,6 +48,7 @@ export default function ProfilePage() {
   const [isAddressCopied, setIsAddressCopied] = useState(false)
   const [showLoadModal, setShowLoadModal] = useState(false)
   const [isInviteCopied, setIsInviteCopied] = useState(false)
+  const [showMenu, setShowMenu] = useState(false)
 
   // Avatar mock (replace with real avatar if available)
   const avatarUrl = 'https://api.dicebear.com/7.x/adventurer/svg?seed=' + (displayName || 'user')
@@ -72,6 +77,17 @@ export default function ProfilePage() {
     }
   }
 
+  const handleExportPrivateKey = () => {
+    // In a real app, this would prompt for password/biometric and export the private key
+    alert('Private key export functionality would be implemented here with proper security measures.')
+    setShowMenu(false)
+  }
+
+  const handleLogout = () => {
+    logout()
+    setShowMenu(false)
+  }
+
   React.useEffect(() => {
     if (!isConnected) {
       router.push('/')
@@ -95,6 +111,11 @@ export default function ProfilePage() {
       </div>
 
       {/* Header */}
+      <div className="relative z-10">
+        <PageHeader />
+      </div>
+      
+      {/* Profile Info */}
       <div className="px-4 pt-8 pb-4 relative z-10">
         <div className="flex items-center gap-4">
           <div className="relative">
@@ -103,14 +124,41 @@ export default function ProfilePage() {
               alt="avatar"
               className="w-20 h-20 rounded-2xl border-4 border-usdt bg-gray-800 object-cover"
             />
-            {/* 3-dot menu placeholder */}
-            <button className="absolute top-0 right-0 p-1 text-gray-400 hover:text-white">
-              <MoreVertical className="w-5 h-5" />
-            </button>
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
               <span className="text-2xl font-bold truncate">{displayName}</span>
+              {/* 3-dot menu */}
+              <div className="relative">
+                <button 
+                  className="p-1 text-gray-400 hover:text-white transition-colors"
+                  onClick={() => setShowMenu(!showMenu)}
+                >
+                  <MoreVertical className="w-5 h-5" />
+                </button>
+                
+                {/* Dropdown menu */}
+                {showMenu && (
+                  <div className="absolute top-full right-0 mt-2 w-48 bg-gray-800 border border-gray-700 rounded-xl shadow-xl z-50">
+                    <div className="py-2">
+                      <button
+                        onClick={handleExportPrivateKey}
+                        className="w-full px-4 py-3 text-left text-gray-300 hover:bg-gray-700 flex items-center gap-3 transition-colors"
+                      >
+                        <Key className="w-4 h-4" />
+                        <span>Export Private Key</span>
+                      </button>
+                      <button
+                        onClick={handleLogout}
+                        className="w-full px-4 py-3 text-left text-red-400 hover:bg-gray-700 flex items-center gap-3 transition-colors"
+                      >
+                        <LogOut className="w-4 h-4" />
+                        <span>Logout</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
             <div className="flex items-center gap-2 mt-1">
               <span className="text-base font-mono text-gray-400 truncate">{walletAddress?.slice(0, 4)}...{walletAddress?.slice(-4)}</span>
@@ -150,13 +198,6 @@ export default function ProfilePage() {
               onClick={() => setShowLoadModal(true)}
             >
               <Globe className="w-4 h-4 mr-1" /> With Fiat
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              className="flex-1 text-usdt border-usdt hover:bg-usdt/10"
-            >
-              <Share2 className="w-4 h-4 mr-1" /> Refer & Earn
             </Button>
           </div>
         </Card>
@@ -232,6 +273,14 @@ export default function ProfilePage() {
             </Button>
           </div>
         </div>
+      )}
+
+      {/* Click outside to close menu */}
+      {showMenu && (
+        <div 
+          className="fixed inset-0 z-40" 
+          onClick={() => setShowMenu(false)}
+        />
       )}
 
       <Navigation />

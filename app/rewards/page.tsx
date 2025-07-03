@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react'
 import { Gift, Star, Info, ArrowRight, Activity, CheckCircle } from 'lucide-react'
+import { PageHeader } from '../../components/PageHeader'
 import { Card } from '../../components/ui/Card'
 // import { Button } from '../../components/ui/Button'
 import { Navigation } from '../../components/Navigation'
@@ -58,15 +59,8 @@ export default function RewardsPage() {
       </div>
 
       {/* Header */}
-      <div className="px-4 pt-8 pb-4 relative z-10">
-        <div className="flex items-center gap-4">
-          <div className="w-14 h-14 bg-usdt rounded-2xl flex items-center justify-center">
-            <Gift className="w-8 h-8 text-white" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold text-usdt">Rewards Program</h1>
-          </div>
-        </div>
+      <div className="relative z-10">
+        <PageHeader />
       </div>
 
       <div className="px-4 space-y-6 relative z-10">

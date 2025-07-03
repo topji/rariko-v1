@@ -25,6 +25,7 @@ import { formatUSDT, formatCurrency, shortenAddress } from '../lib/utils'
 import { useRouter } from 'next/navigation'
 import { Navigation } from '../components/Navigation'
 import WalletCheck from '../components/WalletCheck'
+import { PageHeader } from '../components/PageHeader'
 
 export default function DashboardPage() {
   const {
@@ -131,43 +132,30 @@ export default function DashboardPage() {
     <WalletCheck>
       <div className="min-h-screen bg-gray-900 pb-20">
         {/* Header */}
-        <div className="bg-gray-800 border-b border-gray-700 px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-usdt rounded-xl flex items-center justify-center">
-                <BarChart3 className="w-5 h-5 text-white" />
-              </div>
-              <div>
-                <h1 className="text-lg font-semibold text-white">Dashboard</h1>
-                <p className="text-sm text-gray-400">{displayName}</p>
-              </div>
+        <PageHeader>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleCopyAddress}
+            className="text-gray-400 hover:text-white"
+          >
+            <Copy className="w-4 h-4" />
+          </Button>
+          {isAddressCopied && (
+            <span className="text-xs text-green-400">Copied!</span>
+          )}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => router.push('/profile')}
+          >
+            <div className="w-8 h-8 bg-gray-700 rounded-full flex items-center justify-center">
+              <span className="text-sm font-medium text-gray-300">
+                {displayName.charAt(0)}
+              </span>
             </div>
-            <div className="flex items-center space-x-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleCopyAddress}
-                className="text-gray-400 hover:text-white"
-              >
-                <Copy className="w-4 h-4" />
-              </Button>
-              {isAddressCopied && (
-                <span className="text-xs text-green-400">Copied!</span>
-              )}
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => router.push('/profile')}
-              >
-                <div className="w-8 h-8 bg-gray-700 rounded-full flex items-center justify-center">
-                  <span className="text-sm font-medium text-gray-300">
-                    {displayName.charAt(0)}
-                  </span>
-                </div>
-              </Button>
-            </div>
-          </div>
-        </div>
+          </Button>
+        </PageHeader>
 
         <div className="px-4 py-6 space-y-6">
           {/* Portfolio Value Card */}

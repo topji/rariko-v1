@@ -11,6 +11,7 @@ import { formatUSDT } from '../../lib/utils'
 import { toast } from 'react-hot-toast'
 import { useRouter } from 'next/navigation'
 import { Navigation } from '../../components/Navigation'
+import { PageHeader } from '../../components/PageHeader'
 
 export default function SendPage() {
   const [amount, setAmount] = useState('')
@@ -76,19 +77,16 @@ export default function SendPage() {
   return (
     <div className="min-h-screen bg-gray-900">
       {/* Header */}
-      <div className="bg-gray-800 border-b border-gray-700 px-4 py-4">
-        <div className="flex items-center space-x-3">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleBack}
-            icon={<ArrowLeft className="w-5 h-5" />}
-          >
-            Back
-          </Button>
-          <h1 className="text-lg font-semibold text-white">Send USDT</h1>
-        </div>
-      </div>
+      <PageHeader>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleBack}
+          icon={<ArrowLeft className="w-5 h-5" />}
+        >
+          Back
+        </Button>
+      </PageHeader>
 
       <div className="px-4 py-6 space-y-6">
         {step === 'input' && (

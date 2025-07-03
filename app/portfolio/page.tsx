@@ -5,6 +5,7 @@ import { Navigation } from '../../components/Navigation'
 import { Card } from '../../components/ui/Card'
 import { Button } from '../../components/ui/Button'
 import { TrendingUp, TrendingDown, DollarSign, Percent, PieChart } from 'lucide-react'
+import { PageHeader } from '../../components/PageHeader'
 
 // Mock portfolio data
 const mockPortfolio = {
@@ -70,17 +71,7 @@ export default function PortfolioPage() {
   return (
     <div className="min-h-screen bg-gray-900 text-white pb-20">
       {/* Header */}
-      <div className="bg-gray-800 border-b border-gray-700 px-4 py-4">
-        <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 bg-usdt rounded-xl flex items-center justify-center">
-            <PieChart className="w-5 h-5 text-white" />
-          </div>
-          <div>
-            <h1 className="text-lg font-semibold text-white">Portfolio</h1>
-            <p className="text-sm text-gray-400">Your stock investments</p>
-          </div>
-        </div>
-      </div>
+      <PageHeader />
 
       <div className="px-4 py-6 space-y-6">
         {/* Portfolio Overview */}
