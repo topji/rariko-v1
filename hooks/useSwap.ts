@@ -70,9 +70,18 @@ export function useSwap() {
       console.log('Amount in lamports:', amountInLamports);
       console.log('Wallet balance in lamports:', balance);
       
-      // Check if user has enough SOL
-      if (amountInLamports > balance) {
-        throw new Error(`Insufficient SOL balance. Need ${solAmount.toFixed(4)} SOL, have ${(balance / LAMPORTS_PER_SOL).toFixed(4)} SOL`);
+      // Check minimum amount (at least 0.001 SOL)
+      const minSolAmount = 0.001;
+      if (solAmount < minSolAmount) {
+        throw new Error(`Amount too small. Minimum is ${minSolAmount} SOL (≈ $${(minSolAmount * solPrice).toFixed(2)})`);
+      }
+      
+      // Check if user has enough SOL (including fees)
+      const estimatedFee = 0.005 * LAMPORTS_PER_SOL; // 0.005 SOL for fees
+      const totalRequired = amountInLamports + estimatedFee;
+      
+      if (totalRequired > balance) {
+        throw new Error(`Insufficient SOL balance. Need ${solAmount.toFixed(4)} SOL + fees, have ${(balance / LAMPORTS_PER_SOL).toFixed(4)} SOL`);
       }
       
       // Step 1: Get quote using v6 API for better optimization
@@ -97,46 +106,102 @@ export function useSwap() {
       // Step 2: Create swap transaction with optimized parameters
       console.log('🔄 Creating swap transaction...');
       
-      const swapRequestData = {
-        userPublicKey: signer.publicKey?.toString() || '',
-        quoteResponse: quoteResponse.data,
-        feeAccount: SWAP_FEES.FEE_ACCOUNT,
-        asLegacyTransaction: false, // Use versioned transaction for better optimization
-        computeUnitPriceMicroLamports: 5000,
-        priorityFeeLamports: SWAP_FEES.PRIORITY_FEE_LAMPORTS,
-        useTokenLedger: false, // Disable token ledger to reduce size
-        destinationTokenAccount: undefined, // Let Jupiter handle this
-        dynamicComputeUnitLimit: true
-      };
+      let swapResponse;
+      let useLegacyTransaction = false;
+      
+      // Try versioned transaction first, fallback to legacy if it fails
+      try {
+        const swapRequestData = {
+          userPublicKey: signer.publicKey?.toString() || '',
+          quoteResponse: quoteResponse.data,
+          feeAccount: SWAP_FEES.FEE_ACCOUNT,
+          asLegacyTransaction: false, // Use versioned transaction for better optimization
+          computeUnitPriceMicroLamports: 5000,
+          priorityFeeLamports: SWAP_FEES.PRIORITY_FEE_LAMPORTS,
+          useTokenLedger: false, // Disable token ledger to reduce size
+          destinationTokenAccount: undefined, // Let Jupiter handle this
+          dynamicComputeUnitLimit: true
+        };
 
-      const swapResponse = await axios.post(
-        'https://quote-api.jup.ag/v6/swap',
-        swapRequestData
-      );
+        swapResponse = await axios.post(
+          'https://quote-api.jup.ag/v6/swap',
+          swapRequestData
+        );
+        
+        console.log('✅ Versioned swap transaction created');
+      } catch (versionedError) {
+        console.log('⚠️ Versioned transaction failed, trying legacy...');
+        
+        // Fallback to legacy transaction
+        const swapRequestData = {
+          userPublicKey: signer.publicKey?.toString() || '',
+          quoteResponse: quoteResponse.data,
+          feeAccount: SWAP_FEES.FEE_ACCOUNT,
+          asLegacyTransaction: true, // Use legacy transaction as fallback
+          computeUnitPriceMicroLamports: 5000,
+          priorityFeeLamports: SWAP_FEES.PRIORITY_FEE_LAMPORTS,
+          useTokenLedger: false,
+          destinationTokenAccount: undefined,
+          dynamicComputeUnitLimit: true
+        };
+
+        swapResponse = await axios.post(
+          'https://quote-api.jup.ag/v6/swap',
+          swapRequestData
+        );
+        
+        useLegacyTransaction = true;
+        console.log('✅ Legacy swap transaction created');
+      }
 
       if (!swapResponse.data?.swapTransaction) {
         throw new Error('Failed to create swap transaction');
       }
-
-      console.log('✅ Swap transaction created');
 
       // Step 3: Deserialize and sign transaction
       console.log('🔄 Preparing transaction for wallet approval...');
       
       const swapTransaction = swapResponse.data.swapTransaction;
       const txBuf = Buffer.from(swapTransaction, 'base64');
-      const transaction = VersionedTransaction.deserialize(txBuf);
+      
+      let transaction;
+      if (useLegacyTransaction) {
+        // Import Transaction for legacy transactions
+        const { Transaction } = await import('@solana/web3.js');
+        transaction = Transaction.from(txBuf);
+      } else {
+        transaction = VersionedTransaction.deserialize(txBuf);
+      }
 
       console.log('📏 Transaction size:', txBuf.length, 'bytes');
+      console.log('🔧 Transaction type:', useLegacyTransaction ? 'Legacy' : 'Versioned');
 
       // Step 4: Simulate transaction first
       console.log('🔄 Simulating transaction...');
       try {
-        const simulation = await connection.simulateTransaction(transaction);
+        let simulation;
+        if (useLegacyTransaction) {
+          simulation = await connection.simulateTransaction(transaction as any);
+        } else {
+          simulation = await connection.simulateTransaction(transaction as VersionedTransaction);
+        }
         console.log('📊 Simulation result:', simulation);
         
         if (simulation.value.err) {
-          throw new Error(`Transaction simulation failed: ${JSON.stringify(simulation.value.err)}`);
+          const error = simulation.value.err;
+          console.error('❌ Simulation error details:', error);
+          
+          // Provide more specific error messages
+          if (typeof error === 'object' && error !== null) {
+            if ('InstructionError' in error) {
+              const [index, instructionError] = error.InstructionError as [number, any];
+              if (instructionError === 'ProgramFailedToComplete') {
+                throw new Error(`Swap failed: Program execution failed. This usually means insufficient SOL for fees or the swap amount is too small. Try with a larger amount or ensure you have enough SOL for transaction fees.`);
+              }
+            }
+          }
+          
+          throw new Error(`Transaction simulation failed: ${JSON.stringify(error)}`);
         }
         
         console.log('✅ Transaction simulation successful');
@@ -149,7 +214,12 @@ export function useSwap() {
       console.log('🔄 Requesting wallet signature...');
       setIsConfirming(true);
       
-      const signedTx = await signer.signTransaction(transaction);
+      let signedTx;
+      if (useLegacyTransaction) {
+        signedTx = await signer.signTransaction(transaction as any);
+      } else {
+        signedTx = await signer.signTransaction(transaction as VersionedTransaction);
+      }
       console.log('✅ Transaction signed by wallet');
 
       // Step 6: Send transaction
