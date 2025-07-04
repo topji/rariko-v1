@@ -6,8 +6,7 @@ import { ArrowLeft, Copy, Share2, Download, QrCode, User } from 'lucide-react'
 import { Button } from '../../components/ui/Button'
 import { Card, CardContent, CardHeader } from '../../components/ui/Card'
 import { QRCodeDisplay } from '../../components/ui/QRCodeDisplay'
-import { useAuth } from '../../contexts/AuthContext'
-import { useWallet } from '../../contexts/WalletContext'
+import { useDynamicWallet } from '../../hooks/useDynamicWallet'
 import { shortenAddress } from '../../lib/utils'
 import { toast } from 'react-hot-toast'
 import { useRouter } from 'next/navigation'
@@ -16,15 +15,14 @@ import { PageHeader } from '../../components/PageHeader'
 
 export default function ReceivePage() {
   const [copied, setCopied] = useState(false)
-  const { user } = useAuth()
-  const { wallet } = useWallet()
+  const { walletAddress, displayName } = useDynamicWallet()
   const router = useRouter()
 
   const handleCopyAddress = async () => {
-    if (!wallet?.address) return
+    if (!walletAddress) return
     
     try {
-      await navigator.clipboard.writeText(wallet.address)
+      await navigator.clipboard.writeText(walletAddress)
       setCopied(true)
       toast.success('Wallet address copied!')
       setTimeout(() => setCopied(false), 2000)
@@ -34,12 +32,12 @@ export default function ReceivePage() {
   }
 
   const handleShare = async () => {
-    if (!wallet?.address) return
+    if (!walletAddress) return
     
     const shareData = {
       title: 'Send me USDT',
-      text: `Send USDT to my RariKo wallet: ${user?.username || 'user'}`,
-      url: `https://rariko.app/pay/${user?.username || wallet.address}`,
+      text: `Send USDT to my RariKo wallet: ${displayName || 'user'}`,
+      url: `https://rariko.app/pay/${displayName || walletAddress}`,
     }
 
     try {
@@ -58,7 +56,7 @@ export default function ReceivePage() {
     router.back()
   }
 
-  if (!wallet) {
+  if (!walletAddress) {
     return (
       <div className="min-h-screen bg-gray-900 flex items-center justify-center">
         <div className="text-center">
@@ -94,12 +92,12 @@ export default function ReceivePage() {
           <div className="flex flex-col items-center space-y-6 p-6 bg-gray-800 rounded-2xl shadow-sm border border-gray-700">
             <div className="text-center">
               <h3 className="text-lg font-semibold text-white">Scan to send USDT</h3>
-              <p className="text-sm text-gray-400 mt-1">@{user?.username || 'user'}</p>
+              <p className="text-sm text-gray-400 mt-1">@{displayName || 'user'}</p>
             </div>
             
             <div className="p-4 bg-white rounded-xl border border-gray-600">
               <QRCodeDisplay
-                value={wallet.address}
+                value={walletAddress}
                 size={250}
                 showCopyButton={false}
                 showDownloadButton={false}
@@ -115,7 +113,7 @@ export default function ReceivePage() {
             <CardContent className="space-y-4">
               <div className="bg-gray-700 rounded-xl p-4">
                 <p className="font-mono text-sm break-all text-gray-200">
-                  {wallet.address}
+                  {walletAddress}
                 </p>
               </div>
               

@@ -17,7 +17,7 @@ import {
 import { Button } from '../../components/ui/Button'
 import { Input } from '../../components/ui/Input'
 import { Card, CardContent, CardHeader } from '../../components/ui/Card'
-import { useWallet } from '../../contexts/WalletContext'
+import { useDynamicWallet } from '../../hooks/useDynamicWallet'
 import { formatUSDT, formatCurrency } from '../../lib/utils'
 import { toast } from 'react-hot-toast'
 import { useRouter } from 'next/navigation'
@@ -43,7 +43,7 @@ export default function SwapPage() {
   const [step, setStep] = useState<'input' | 'confirm' | 'success'>('input')
   const [isLoading, setIsLoading] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
-  const { wallet } = useWallet()
+  const { walletAddress } = useDynamicWallet()
   const router = useRouter()
 
   // Mock tokens data
@@ -54,7 +54,7 @@ export default function SwapPage() {
       name: 'Tether USD',
       icon: '💵',
       price: 1.00,
-      balance: wallet?.balance || 0,
+      balance: 0,
       decimals: 6,
     },
     {

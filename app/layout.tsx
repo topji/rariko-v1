@@ -3,8 +3,6 @@ import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
 import { Toaster } from 'react-hot-toast'
-import { AuthProvider } from '../contexts/AuthContext'
-import { WalletProvider } from '../contexts/WalletContext'
 import { DynamicContextProvider } from "@dynamic-labs/sdk-react-core";
 import { SolanaWalletConnectors } from "@dynamic-labs/solana";
 import dotenv from 'dotenv'
@@ -45,28 +43,24 @@ export default function RootLayout({
             mobileExperience: 'redirect',
           }}
         >
-          <AuthProvider>
-            <WalletProvider>
-              {children}
-              <Toaster
-                position="top-center"
-                toastOptions={{
-                  duration: 4000,
-                  style: {
-                    background: '#363636',
-                    color: '#fff',
-                    borderRadius: '12px',
-                  },
-                  success: {
-                    iconTheme: {
-                      primary: '#1DBF73',
-                      secondary: '#fff',
-                    },
-                  },
-                }}
-              />
-            </WalletProvider>
-          </AuthProvider>
+          {children}
+          <Toaster
+            position="top-center"
+            toastOptions={{
+              duration: 4000,
+              style: {
+                background: '#363636',
+                color: '#fff',
+                borderRadius: '12px',
+              },
+              success: {
+                iconTheme: {
+                  primary: '#1DBF73',
+                  secondary: '#fff',
+                },
+              },
+            }}
+          />
         </DynamicContextProvider>
       </body>
     </html>

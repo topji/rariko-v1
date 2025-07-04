@@ -40,6 +40,7 @@ export default function ProfilePage() {
     tokenBalances,
     isLoadingTokens,
     logout,
+    exportPrivateKey,
     onrampEnabled,
     buyWithFiat,
   } = useDynamicWallet()
@@ -78,8 +79,7 @@ export default function ProfilePage() {
   }
 
   const handleExportPrivateKey = () => {
-    // In a real app, this would prompt for password/biometric and export the private key
-    alert('Private key export functionality would be implemented here with proper security measures.')
+    exportPrivateKey()
     setShowMenu(false)
   }
 

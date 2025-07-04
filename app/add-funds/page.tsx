@@ -16,7 +16,7 @@ import {
 import { Button } from '../../components/ui/Button'
 import { Input } from '../../components/ui/Input'
 import { Card, CardContent, CardHeader } from '../../components/ui/Card'
-import { useWallet } from '../../contexts/WalletContext'
+import { useDynamicWallet } from '../../hooks/useDynamicWallet'
 import { formatUSDT } from '../../lib/utils'
 import { toast } from 'react-hot-toast'
 import { useRouter } from 'next/navigation'
@@ -37,7 +37,7 @@ export default function AddFundsPage() {
   const [selectedMethod, setSelectedMethod] = useState<string>('')
   const [step, setStep] = useState<'input' | 'confirm' | 'success'>('input')
   const [isLoading, setIsLoading] = useState(false)
-  const { wallet, updateBalance } = useWallet()
+  const { walletAddress } = useDynamicWallet()
   const router = useRouter()
 
   const paymentMethods: PaymentMethod[] = [
@@ -98,9 +98,6 @@ export default function AddFundsPage() {
     try {
       // Simulate payment processing
       await new Promise(resolve => setTimeout(resolve, 2000))
-      
-      const newBalance = (wallet?.balance || 0) + parseFloat(amount)
-      updateBalance(newBalance)
       
       setStep('success')
       toast.success('Funds added successfully! 💰')
@@ -327,7 +324,7 @@ export default function AddFundsPage() {
                   <div className="flex justify-between">
                     <span className="text-gray-300">New Balance</span>
                     <span className="font-medium text-white">
-                      {formatUSDT((wallet?.balance || 0) + parseFloat(amount))}
+                      {formatUSDT(parseFloat(amount))}
                     </span>
                   </div>
                 </div>
