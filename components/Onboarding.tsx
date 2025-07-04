@@ -4,7 +4,8 @@ import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from 'framer-motion'
-import { TrendingUp, Sparkles } from 'lucide-react';
+import { Sparkles } from 'lucide-react';
+import { Logo } from './Logo';
 
 // Animated background particles
 const FloatingParticles = () => {
@@ -143,7 +144,7 @@ export default function Onboarding() {
                 animate={{ rotate: 360 }}
                 transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
               >
-                <TrendingUp className="w-10 h-10 text-white" />
+                <Logo size="lg" />
               </motion.div>
             </motion.div>
 

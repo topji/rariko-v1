@@ -15,8 +15,8 @@ export const metadata: Metadata = {
   description: 'Trade tokenized US stocks with your crypto wallet',
   manifest: '/manifest.json',
   icons: {
-    icon: '/icon-192x192.png',
-    apple: '/icon-192x192.png',
+    icon: '/favicon.svg',
+    apple: '/favicon.svg',
   },
 }
 

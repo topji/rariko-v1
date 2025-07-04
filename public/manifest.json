@@ -1,7 +1,7 @@
 {
-  "name": "RariKo - Stablecoin Wallet",
+  "name": "RariKo - Tokenized US Stocks Wallet",
   "short_name": "RariKo",
-  "description": "Send and receive USDT instantly with RariKo - the simplest stablecoin wallet",
+  "description": "Trade tokenized US stocks with your crypto wallet - RariKo",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",

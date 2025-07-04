@@ -1,7 +1,7 @@
 import React from 'react'
-import { TrendingUp } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useDynamicWallet } from '../hooks/useDynamicWallet'
+import { Logo } from './Logo'
 
 interface PageHeaderProps {
   showRefresh?: boolean
@@ -22,9 +22,7 @@ export function PageHeader({ showRefresh = false, onRefresh, isRefreshing = fals
     <div className="bg-gray-800 border-b border-gray-700 px-4 py-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 bg-usdt rounded-xl flex items-center justify-center">
-            <TrendingUp className="w-5 h-5 text-white" />
-          </div>
+          <Logo size="md" />
           <div>
             <h1 className="text-lg font-semibold text-white">RariKo</h1>
             <p className="text-sm text-gray-400">Tokenized US Stocks Wallet</p>
