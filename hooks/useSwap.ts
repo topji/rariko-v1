@@ -104,7 +104,6 @@ export function useSwap() {
         asLegacyTransaction: false, // Use versioned transaction for better optimization
         computeUnitPriceMicroLamports: 5000,
         priorityFeeLamports: SWAP_FEES.PRIORITY_FEE_LAMPORTS,
-        useSharedAccounts: true, // Reduce transaction size
         useTokenLedger: false, // Disable token ledger to reduce size
         destinationTokenAccount: undefined, // Let Jupiter handle this
         dynamicComputeUnitLimit: true
