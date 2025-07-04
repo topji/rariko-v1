@@ -238,6 +238,18 @@ export default function ProfilePage() {
             </div>
           </div>
         </Card>
+
+        {/* Logout Button */}
+        <Card className="bg-gray-800 border border-gray-700/60 backdrop-blur-xl rounded-2xl p-6">
+          <Button
+            variant="outline"
+            onClick={handleLogout}
+            className="w-full text-red-400 border-red-400 hover:bg-red-400/10 flex items-center justify-center gap-3"
+          >
+            <LogOut className="w-5 h-5" />
+            <span>Logout</span>
+          </Button>
+        </Card>
       </div>
 
       {/* Load Modal */}

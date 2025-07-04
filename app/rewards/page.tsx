@@ -60,7 +60,7 @@ export default function RewardsPage() {
 
       {/* Header */}
       <div className="relative z-10">
-        <PageHeader />
+        <PageHeader showProfile={true} />
       </div>
 
       <div className="px-4 space-y-6 relative z-10">

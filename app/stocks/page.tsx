@@ -134,7 +134,7 @@ export default function StocksPage() {
   return (
     <div className="min-h-screen bg-gray-900 text-white pb-20">
       {/* Header */}
-      <PageHeader 
+              <PageHeader showProfile={true} 
         showRefresh={true}
         onRefresh={() => fetchAllStocks(true)}
         isRefreshing={isRefreshing}

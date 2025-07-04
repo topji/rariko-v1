@@ -71,7 +71,7 @@ export default function PortfolioPage() {
   return (
     <div className="min-h-screen bg-gray-900 text-white pb-20">
       {/* Header */}
-      <PageHeader />
+              <PageHeader showProfile={true} />
 
       <div className="px-4 py-6 space-y-6">
         {/* Portfolio Overview */}

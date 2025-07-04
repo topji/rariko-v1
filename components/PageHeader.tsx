@@ -1,14 +1,23 @@
 import React from 'react'
 import { TrendingUp } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { useDynamicWallet } from '../hooks/useDynamicWallet'
 
 interface PageHeaderProps {
   showRefresh?: boolean
   onRefresh?: () => void
   isRefreshing?: boolean
   children?: React.ReactNode
+  showProfile?: boolean
 }
 
-export function PageHeader({ showRefresh = false, onRefresh, isRefreshing = false, children }: PageHeaderProps) {
+export function PageHeader({ showRefresh = false, onRefresh, isRefreshing = false, children, showProfile = false }: PageHeaderProps) {
+  const router = useRouter()
+  const { displayName } = useDynamicWallet()
+
+  // Avatar URL for profile picture
+  const avatarUrl = 'https://api.dicebear.com/7.x/adventurer/svg?seed=' + (displayName || 'user')
+
   return (
     <div className="bg-gray-800 border-b border-gray-700 px-4 py-4">
       <div className="flex items-center justify-between">
@@ -42,6 +51,18 @@ export function PageHeader({ showRefresh = false, onRefresh, isRefreshing = fals
                   d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" 
                 />
               </svg>
+            </button>
+          )}
+          {showProfile && (
+            <button
+              onClick={() => router.push('/profile')}
+              className="w-8 h-8 rounded-full overflow-hidden border-2 border-gray-600 hover:border-usdt transition-colors"
+            >
+              <img
+                src={avatarUrl}
+                alt="Profile"
+                className="w-full h-full object-cover"
+              />
             </button>
           )}
         </div>

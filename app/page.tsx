@@ -132,7 +132,7 @@ export default function DashboardPage() {
     <WalletCheck>
       <div className="min-h-screen bg-gray-900 pb-20">
         {/* Header */}
-        <PageHeader>
+        <PageHeader showProfile={true}>
           <Button
             variant="ghost"
             size="sm"
@@ -144,17 +144,6 @@ export default function DashboardPage() {
           {isAddressCopied && (
             <span className="text-xs text-green-400">Copied!</span>
           )}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => router.push('/profile')}
-          >
-            <div className="w-8 h-8 bg-gray-700 rounded-full flex items-center justify-center">
-              <span className="text-sm font-medium text-gray-300">
-                {displayName.charAt(0)}
-              </span>
-            </div>
-          </Button>
         </PageHeader>
 
         <div className="px-4 py-6 space-y-6">
