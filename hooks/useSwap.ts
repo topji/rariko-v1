@@ -75,8 +75,8 @@ export function useSwap() {
         throw new Error(`Insufficient SOL balance. Need ${solAmount.toFixed(4)} SOL, have ${(balance / LAMPORTS_PER_SOL).toFixed(4)} SOL`);
       }
       
-      // Step 1: Get quote
-      const quoteResponse = await axios.get('https://lite-api.jup.ag/swap/v1/quote', {
+      // Step 1: Get quote using v6 API for better optimization
+      const quoteResponse = await axios.get('https://quote-api.jup.ag/v6/quote', {
         params: {
           inputMint: NATIVE_MINT.toBase58(),
           outputMint: outputTokenAddress,
@@ -94,32 +94,25 @@ export function useSwap() {
 
       console.log('✅ Quote received:', quoteResponse.data);
 
-      // Step 2: Create swap transaction
+      // Step 2: Create swap transaction with optimized parameters
       console.log('🔄 Creating swap transaction...');
       
       const swapRequestData = {
         userPublicKey: signer.publicKey?.toString() || '',
         quoteResponse: quoteResponse.data,
         feeAccount: SWAP_FEES.FEE_ACCOUNT,
-        prioritizationFeeLamports: {
-          priorityLevelWithMaxLamports: {
-            maxLamports: SWAP_FEES.PRIORITY_FEE_LAMPORTS,
-            priorityLevel: "veryHigh"
-          }
-        },
-        asLegacyTransaction: true,
+        asLegacyTransaction: false, // Use versioned transaction for better optimization
+        computeUnitPriceMicroLamports: 5000,
+        priorityFeeLamports: SWAP_FEES.PRIORITY_FEE_LAMPORTS,
+        useSharedAccounts: true, // Reduce transaction size
+        useTokenLedger: false, // Disable token ledger to reduce size
+        destinationTokenAccount: undefined, // Let Jupiter handle this
         dynamicComputeUnitLimit: true
       };
 
       const swapResponse = await axios.post(
-        'https://lite-api.jup.ag/swap/v1/swap',
-        swapRequestData,
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-          }
-        }
+        'https://quote-api.jup.ag/v6/swap',
+        swapRequestData
       );
 
       if (!swapResponse.data?.swapTransaction) {
@@ -134,6 +127,8 @@ export function useSwap() {
       const swapTransaction = swapResponse.data.swapTransaction;
       const txBuf = Buffer.from(swapTransaction, 'base64');
       const transaction = VersionedTransaction.deserialize(txBuf);
+
+      console.log('📏 Transaction size:', txBuf.length, 'bytes');
 
       // Step 4: Simulate transaction first
       console.log('🔄 Simulating transaction...');
@@ -386,7 +381,7 @@ export function useSwap() {
       // Ensure amount is an integer string
       const amountInt = Math.floor(parseFloat(amount)).toString();
       
-      const response = await axios.get('https://lite-api.jup.ag/swap/v1/quote', {
+      const response = await axios.get('https://quote-api.jup.ag/v6/quote', {
         params: {
           inputMint,
           outputMint,
