@@ -2,7 +2,14 @@ import { useState } from 'react';
 import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
 import { isSolanaWallet } from "@dynamic-labs/solana";
 import axios from 'axios';
-import { NATIVE_MINT } from '@solana/spl-token';
+import { 
+  PublicKey, 
+  VersionedTransaction, 
+  LAMPORTS_PER_SOL,
+  TransactionSignature,
+  Commitment
+} from '@solana/web3.js';
+import { NATIVE_MINT, getMint } from '@solana/spl-token';
 import { SWAP_FEES, calculateFee } from '../constants/fees';
 
 interface SwapResult {
@@ -15,6 +22,7 @@ interface SwapResult {
 export function useSwap() {
   const { primaryWallet } = useDynamicContext();
   const [isLoading, setIsLoading] = useState(false);
+  const [isConfirming, setIsConfirming] = useState(false);
 
   const getSolPrice = async () => {
     try {
@@ -32,6 +40,8 @@ export function useSwap() {
     }
 
     setIsLoading(true);
+    let txId: TransactionSignature | null = null;
+
     try {
       const signer = await primaryWallet.getSigner();
       const connection = await primaryWallet.getConnection();
@@ -44,9 +54,11 @@ export function useSwap() {
       
       // Calculate SOL amount from USD
       const solAmount = usdAmount / solPrice;
-      const amountInLamports = solAmount * 1e9;
+      const amountInLamports = solAmount * LAMPORTS_PER_SOL;
 
-      // Get quote with fee
+      console.log('🔄 Getting swap quote...');
+      
+      // Step 1: Get quote
       const quoteResponse = await axios.get('https://lite-api.jup.ag/swap/v1/quote', {
         params: {
           inputMint: NATIVE_MINT.toBase58(),
@@ -59,8 +71,16 @@ export function useSwap() {
         }
       });
 
-      // Execute swap with fee collection
-      const swapResponse = await axios.post('https://lite-api.jup.ag/swap/v1/swap', {
+      if (!quoteResponse.data) {
+        throw new Error('Failed to get quote');
+      }
+
+      console.log('✅ Quote received:', quoteResponse.data);
+
+      // Step 2: Create swap transaction
+      console.log('🔄 Creating swap transaction...');
+      
+      const swapRequestData = {
         userPublicKey: signer.publicKey?.toString() || '',
         quoteResponse: quoteResponse.data,
         feeAccount: SWAP_FEES.FEE_ACCOUNT,
@@ -72,11 +92,66 @@ export function useSwap() {
         },
         asLegacyTransaction: true,
         dynamicComputeUnitLimit: true
+      };
+
+      const swapResponse = await axios.post(
+        'https://lite-api.jup.ag/swap/v1/swap',
+        swapRequestData,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          }
+        }
+      );
+
+      if (!swapResponse.data?.swapTransaction) {
+        throw new Error('Failed to create swap transaction');
+      }
+
+      console.log('✅ Swap transaction created');
+
+      // Step 3: Deserialize and sign transaction
+      console.log('🔄 Preparing transaction for wallet approval...');
+      
+      const swapTransaction = swapResponse.data.swapTransaction;
+      const txBuf = Buffer.from(swapTransaction, 'base64');
+      const transaction = VersionedTransaction.deserialize(txBuf);
+
+      // Step 4: Request wallet signature
+      console.log('🔄 Requesting wallet signature...');
+      setIsConfirming(true);
+      
+      const signedTx = await signer.signTransaction(transaction);
+      console.log('✅ Transaction signed by wallet');
+
+      // Step 5: Send transaction
+      console.log('🔄 Sending transaction to network...');
+      
+      txId = await connection.sendTransaction(signedTx, {
+        skipPreflight: true,
+        maxRetries: 3,
+        preflightCommitment: 'confirmed' as Commitment
       });
 
-      // Sign and send transaction using Dynamic Labs method
-      const txBuf = Buffer.from(swapResponse.data.swapTransaction, 'base64');
-      const txId = await signer.sendTransaction(txBuf);
+      console.log('📤 Transaction sent:', txId);
+
+      // Step 6: Wait for confirmation
+      console.log('🔄 Waiting for confirmation...');
+      
+      const { lastValidBlockHeight, blockhash } = await connection.getLatestBlockhash();
+      
+      const confirmation = await connection.confirmTransaction({
+        signature: txId,
+        blockhash: blockhash,
+        lastValidBlockHeight: lastValidBlockHeight
+      }, 'confirmed' as Commitment);
+
+      if (confirmation.value.err) {
+        throw new Error(`Transaction failed: ${confirmation.value.err}`);
+      }
+
+      console.log('✅ Transaction confirmed!');
 
       // Calculate fee in USD
       const feeAmount = calculateFee(solAmount, SWAP_FEES.FEE_BPS);
@@ -103,9 +178,19 @@ export function useSwap() {
         feeInSol: feeAmount,
         feeInUSD
       };
+
+    } catch (error) {
+      console.error('❌ Swap failed:', error);
       
+      // If transaction was sent but failed, we still have the txId
+      if (txId) {
+        console.log('Transaction ID for debugging:', txId);
+      }
+      
+      throw error;
     } finally {
       setIsLoading(false);
+      setIsConfirming(false);
     }
   };
 
@@ -115,16 +200,25 @@ export function useSwap() {
     }
 
     setIsLoading(true);
+    let txId: TransactionSignature | null = null;
+
     try {
       const signer = await primaryWallet.getSigner();
       const connection = await primaryWallet.getConnection();
 
-      // Get quote with fee
+      // Get token decimals
+      const tokenMint = new PublicKey(mintAddress);
+      const mintInfo = await getMint(connection, tokenMint);
+      const tokenAmountWithDecimals = tokenAmount * Math.pow(10, mintInfo.decimals);
+
+      console.log('🔄 Getting sell quote...');
+
+      // Get quote
       const quoteResponse = await axios.get('https://quote-api.jup.ag/v6/quote', {
         params: {
           inputMint: mintAddress,
           outputMint: NATIVE_MINT.toBase58(),
-          amount: tokenAmount.toString(),
+          amount: tokenAmountWithDecimals.toString(),
           slippageBps: 100,
           swapMode: 'ExactIn',
           onlyDirectRoutes: false,
@@ -132,22 +226,79 @@ export function useSwap() {
         }
       });
 
-      // Execute swap with fee collection
-      const swapResponse = await axios.post('https://quote-api.jup.ag/v6/swap', {
+      if (!quoteResponse.data) {
+        throw new Error('Failed to get quote');
+      }
+
+      console.log('✅ Sell quote received');
+
+      // Create swap transaction
+      console.log('🔄 Creating sell transaction...');
+      
+      const swapRequestData = {
         userPublicKey: signer.publicKey?.toString() || '',
         quoteResponse: quoteResponse.data,
         feeAccount: SWAP_FEES.FEE_ACCOUNT,
         asLegacyTransaction: true,
         computeUnitPriceMicroLamports: 5000,
         priorityFeeLamports: SWAP_FEES.PRIORITY_FEE_LAMPORTS
+      };
+
+      const swapResponse = await axios.post(
+        'https://quote-api.jup.ag/v6/swap',
+        swapRequestData
+      );
+
+      if (!swapResponse.data?.swapTransaction) {
+        throw new Error('Failed to create sell transaction');
+      }
+
+      console.log('✅ Sell transaction created');
+
+      // Deserialize and sign
+      console.log('🔄 Preparing sell transaction for wallet approval...');
+      
+      const swapTransaction = swapResponse.data.swapTransaction;
+      const txBuf = Buffer.from(swapTransaction, 'base64');
+      const transaction = VersionedTransaction.deserialize(txBuf);
+
+      // Request wallet signature
+      console.log('🔄 Requesting wallet signature for sell...');
+      setIsConfirming(true);
+      
+      const signedTx = await signer.signTransaction(transaction);
+      console.log('✅ Sell transaction signed');
+
+      // Send transaction
+      console.log('🔄 Sending sell transaction...');
+      
+      txId = await connection.sendTransaction(signedTx, {
+        skipPreflight: true,
+        maxRetries: 3,
+        preflightCommitment: 'confirmed' as Commitment
       });
 
-      // Sign and send transaction using Dynamic Labs method
-      const txBuf = Buffer.from(swapResponse.data.swapTransaction, 'base64');
-      const txId = await signer.sendTransaction(txBuf);
+      console.log('📤 Sell transaction sent:', txId);
+
+      // Wait for confirmation
+      console.log('🔄 Waiting for sell confirmation...');
+      
+      const { lastValidBlockHeight, blockhash } = await connection.getLatestBlockhash();
+      
+      const confirmation = await connection.confirmTransaction({
+        signature: txId,
+        blockhash: blockhash,
+        lastValidBlockHeight: lastValidBlockHeight
+      }, 'confirmed' as Commitment);
+
+      if (confirmation.value.err) {
+        throw new Error(`Sell transaction failed: ${confirmation.value.err}`);
+      }
+
+      console.log('✅ Sell transaction confirmed!');
 
       // Calculate fee from quote
-      const outAmount = parseFloat(quoteResponse.data.outAmount) / 1e9;
+      const outAmount = parseFloat(quoteResponse.data.outAmount) / LAMPORTS_PER_SOL;
       const feeAmount = calculateFee(outAmount, SWAP_FEES.FEE_BPS);
       const solPrice = await getSolPrice();
       const feeInUSD = feeAmount * solPrice;
@@ -173,9 +324,18 @@ export function useSwap() {
         feeInSol: feeAmount,
         feeInUSD
       };
+
+    } catch (error) {
+      console.error('❌ Sell failed:', error);
       
+      if (txId) {
+        console.log('Sell Transaction ID for debugging:', txId);
+      }
+      
+      throw error;
     } finally {
       setIsLoading(false);
+      setIsConfirming(false);
     }
   };
 
@@ -199,5 +359,5 @@ export function useSwap() {
     }
   };
 
-  return { buyToken, sellToken, getQuote, isLoading };
+  return { buyToken, sellToken, getQuote, isLoading, isConfirming };
 } 

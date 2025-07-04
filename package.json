@@ -9,11 +9,11 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@dynamic-labs/sdk-api": "^0.0.705",
-    "@dynamic-labs/sdk-react-core": "^4.20.13",
-    "@dynamic-labs/solana": "^4.20.13",
+    "@dynamic-labs/sdk-api": "^0.0.646",
+    "@dynamic-labs/sdk-react-core": "^4.20.17",
+    "@dynamic-labs/solana": "^4.20.17",
     "@solana/spl-token": "^0.4.13",
-    "@solana/web3.js": "^1.98.2",
+    "@solana/web3.js": "^1.98.1",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",

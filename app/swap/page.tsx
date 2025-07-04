@@ -18,11 +18,13 @@ import { Button } from '../../components/ui/Button'
 import { Input } from '../../components/ui/Input'
 import { Card, CardContent, CardHeader } from '../../components/ui/Card'
 import { useDynamicWallet } from '../../hooks/useDynamicWallet'
+import { useSwap } from '../../hooks/useSwap'
 import { formatUSDT, formatCurrency } from '../../lib/utils'
 import { toast } from 'react-hot-toast'
 import { useRouter } from 'next/navigation'
 import { Navigation } from '../../components/Navigation'
 import { PageHeader } from '../../components/PageHeader'
+import TransactionStatus from '../../components/TransactionStatus'
 
 interface Token {
   id: string
@@ -41,9 +43,11 @@ export default function SwapPage() {
   const [toAmount, setToAmount] = useState('')
   const [slippage, setSlippage] = useState(0.5)
   const [step, setStep] = useState<'input' | 'confirm' | 'success'>('input')
-  const [isLoading, setIsLoading] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
+  const [txId, setTxId] = useState<string | null>(null)
+  const [showTransactionStatus, setShowTransactionStatus] = useState(false)
   const { walletAddress } = useDynamicWallet()
+  const { buyToken, sellToken, isLoading, isConfirming } = useSwap()
   const router = useRouter()
 
   // Mock tokens data
@@ -157,16 +161,36 @@ export default function SwapPage() {
   }
 
   const handleSwap = async () => {
-    setIsLoading(true)
+    if (!fromToken || !toToken || !fromAmount) {
+      toast.error('Invalid swap parameters')
+      return
+    }
+
     try {
-      // Simulate swap processing
-      await new Promise(resolve => setTimeout(resolve, 3000))
+      setShowTransactionStatus(true)
+      
+      // Determine if this is a buy or sell operation
+      const isBuying = fromToken.symbol === 'SOL' || fromToken.id === 'sol'
+      const isSelling = toToken.symbol === 'SOL' || toToken.id === 'sol'
+      
+      let result
+      if (isBuying) {
+        // Buying token with SOL
+        result = await buyToken(toToken.id, parseFloat(fromAmount))
+      } else if (isSelling) {
+        // Selling token for SOL
+        result = await sellToken(fromToken.id, parseFloat(fromAmount))
+      } else {
+        // For now, treat as buying with SOL (you can enhance this logic)
+        result = await buyToken(toToken.id, parseFloat(fromAmount))
+      }
+      
+      setTxId(result.txId)
       setStep('success')
-      toast.success('Swap completed successfully! 🔄')
-    } catch (error) {
-      toast.error('Swap failed. Please try again.')
-    } finally {
-      setIsLoading(false)
+      toast.success(`Swap completed successfully! Fee: $${result.feeInUSD.toFixed(2)} 🔄`)
+    } catch (error: any) {
+      console.error('Swap failed:', error)
+      toast.error(error.message || 'Swap failed. Please try again.')
     }
   }
 
@@ -471,7 +495,9 @@ export default function SwapPage() {
                 <div className="space-y-3 text-left">
                   <div className="flex justify-between">
                     <span className="text-gray-300">Transaction Hash</span>
-                    <span className="font-mono text-sm text-white">0x1234...5678</span>
+                    <span className="font-mono text-sm text-white">
+                      {txId ? `${txId.slice(0, 8)}...${txId.slice(-8)}` : 'Processing...'}
+                    </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-300">Status</span>
@@ -555,6 +581,17 @@ export default function SwapPage() {
           </div>
         )}
       </div>
+      
+      {/* Transaction Status Modal */}
+      {showTransactionStatus && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <TransactionStatus
+            txId={txId}
+            isConfirming={isConfirming}
+            onClose={() => setShowTransactionStatus(false)}
+          />
+        </div>
+      )}
       
       {/* Bottom Navigation */}
       <Navigation />
