@@ -46,6 +46,14 @@ export function useSwap() {
       const signer = await primaryWallet.getSigner();
       const connection = await primaryWallet.getConnection();
       
+      // Check wallet balance first
+      if (!signer.publicKey) {
+        throw new Error('Wallet public key not available');
+      }
+      const publicKey = new PublicKey(signer.publicKey.toBytes());
+      const balance = await connection.getBalance(publicKey);
+      console.log('💰 Wallet SOL balance:', balance / LAMPORTS_PER_SOL, 'SOL');
+      
       // Get real SOL price
       const solPrice = await getSolPrice();
       if (solPrice === 0) {
@@ -57,7 +65,15 @@ export function useSwap() {
       const amountInLamports = Math.floor(solAmount * LAMPORTS_PER_SOL);
 
       console.log('🔄 Getting swap quote...');
+      console.log('USD Amount:', usdAmount);
+      console.log('SOL Amount:', solAmount);
       console.log('Amount in lamports:', amountInLamports);
+      console.log('Wallet balance in lamports:', balance);
+      
+      // Check if user has enough SOL
+      if (amountInLamports > balance) {
+        throw new Error(`Insufficient SOL balance. Need ${solAmount.toFixed(4)} SOL, have ${(balance / LAMPORTS_PER_SOL).toFixed(4)} SOL`);
+      }
       
       // Step 1: Get quote
       const quoteResponse = await axios.get('https://lite-api.jup.ag/swap/v1/quote', {
@@ -119,25 +135,41 @@ export function useSwap() {
       const txBuf = Buffer.from(swapTransaction, 'base64');
       const transaction = VersionedTransaction.deserialize(txBuf);
 
-      // Step 4: Request wallet signature
+      // Step 4: Simulate transaction first
+      console.log('🔄 Simulating transaction...');
+      try {
+        const simulation = await connection.simulateTransaction(transaction);
+        console.log('📊 Simulation result:', simulation);
+        
+        if (simulation.value.err) {
+          throw new Error(`Transaction simulation failed: ${JSON.stringify(simulation.value.err)}`);
+        }
+        
+        console.log('✅ Transaction simulation successful');
+      } catch (simError: any) {
+        console.error('❌ Transaction simulation failed:', simError);
+        throw new Error(`Transaction will fail: ${simError.message || 'Unknown error'}`);
+      }
+
+      // Step 5: Request wallet signature
       console.log('🔄 Requesting wallet signature...');
       setIsConfirming(true);
       
       const signedTx = await signer.signTransaction(transaction);
       console.log('✅ Transaction signed by wallet');
 
-      // Step 5: Send transaction
+      // Step 6: Send transaction
       console.log('🔄 Sending transaction to network...');
       
       txId = await connection.sendTransaction(signedTx, {
-        skipPreflight: true,
+        skipPreflight: false, // Enable preflight to catch errors
         maxRetries: 3,
         preflightCommitment: 'confirmed' as Commitment
       });
 
       console.log('📤 Transaction sent:', txId);
 
-      // Step 6: Wait for confirmation
+      // Step 7: Wait for confirmation
       console.log('🔄 Waiting for confirmation...');
       
       const { lastValidBlockHeight, blockhash } = await connection.getLatestBlockhash();
@@ -207,12 +239,20 @@ export function useSwap() {
       const signer = await primaryWallet.getSigner();
       const connection = await primaryWallet.getConnection();
 
+      // Check wallet public key
+      if (!signer.publicKey) {
+        throw new Error('Wallet public key not available');
+      }
+      const publicKey = new PublicKey(signer.publicKey.toBytes());
+
       // Get token decimals
       const tokenMint = new PublicKey(mintAddress);
       const mintInfo = await getMint(connection, tokenMint);
       const tokenAmountWithDecimals = Math.floor(tokenAmount * Math.pow(10, mintInfo.decimals));
 
       console.log('🔄 Getting sell quote...');
+      console.log('Token amount:', tokenAmount);
+      console.log('Token decimals:', mintInfo.decimals);
       console.log('Token amount with decimals:', tokenAmountWithDecimals);
 
       // Get quote
