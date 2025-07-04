@@ -6,6 +6,8 @@ import { Card } from '../../components/ui/Card'
 import { Button } from '../../components/ui/Button'
 import { useDynamicWallet } from '../../hooks/useDynamicWallet'
 import { useRouter } from 'next/navigation'
+import { useDynamicContext, useEmbeddedReveal, useOnramp } from "@dynamic-labs/sdk-react-core"
+import { OnrampProviders } from "@dynamic-labs/sdk-api"
 import {
   User,
   Wallet,
@@ -40,10 +42,12 @@ export default function ProfilePage() {
     tokenBalances,
     isLoadingTokens,
     logout,
-    exportPrivateKey,
-    onrampEnabled,
-    buyWithFiat,
   } = useDynamicWallet()
+
+  // Direct Dynamic Labs hooks
+  const { primaryWallet } = useDynamicContext()
+  const { initExportProcess } = useEmbeddedReveal()
+  const { open: openOnramp } = useOnramp()
 
   const router = useRouter()
   const [isAddressCopied, setIsAddressCopied] = useState(false)
@@ -73,13 +77,23 @@ export default function ProfilePage() {
 
   const handleBuySol = () => {
     if (walletAddress) {
-      buyWithFiat(walletAddress)
+      openOnramp({
+        onrampProvider: OnrampProviders.Banxa,
+        token: 'SOL',
+        address: walletAddress,
+      }).then(() => {
+        // Optionally refresh the balance after success
+        // You can add a function to refresh SOL balance here
+        console.log('Onramp completed successfully')
+      })
       setShowLoadModal(false)
     }
   }
 
   const handleExportPrivateKey = () => {
-    exportPrivateKey()
+    if (primaryWallet) {
+      initExportProcess()
+    }
     setShowMenu(false)
   }
 

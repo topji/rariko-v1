@@ -5,8 +5,12 @@ import { Navigation } from '../../components/Navigation'
 import { Card } from '../../components/ui/Card'
 import { Button } from '../../components/ui/Button'
 import { Input } from '../../components/ui/Input'
-import { Search, TrendingUp, TrendingDown, DollarSign, Volume2, RefreshCw } from 'lucide-react'
+import { Search, TrendingUp, TrendingDown, DollarSign, Volume2, RefreshCw, Loader2 } from 'lucide-react'
 import { PageHeader } from '../../components/PageHeader'
+import { useSwap } from '../../hooks/useSwap'
+import { useDynamicWallet } from '../../hooks/useDynamicWallet'
+import { NATIVE_MINT } from '@solana/spl-token'
+import { LAMPORTS_PER_SOL } from '@solana/web3.js'
 
 // Contract addresses for different stocks
 const STOCK_CONTRACTS = [
@@ -91,6 +95,14 @@ export default function StocksPage() {
   const [stocksData, setStocksData] = useState<StockData[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isRefreshing, setIsRefreshing] = useState(false)
+  const [quoteData, setQuoteData] = useState<any>(null)
+  const [isGettingQuote, setIsGettingQuote] = useState(false)
+  
+  const { buyToken, getQuote, isLoading: isSwapLoading } = useSwap()
+  const { isConnected, tokenBalances } = useDynamicWallet()
+  
+  // SOL balance
+  const solBalance = tokenBalances?.find(token => token.symbol === 'SOL')?.balance || 0
 
   // Fetch stock data from DexScreener API
   const fetchStockData = async (contractAddress: string, symbol: string, name: string): Promise<StockData> => {
@@ -159,8 +171,34 @@ export default function StocksPage() {
     stock.symbol.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
-  const handleBuyStock = () => {
-    if (!selectedStock || !buyAmountUSD) return
+  // Get quote for swap estimation
+  const getSwapQuote = async (usdAmount: number) => {
+    if (!selectedStock || !isConnected) return
+    
+    setIsGettingQuote(true)
+    try {
+      // Convert USD to SOL (approximate rate - in real app, you'd get this from price feed)
+      const solPerUsd = 0.01 // Approximate SOL/USD rate - should be fetched from price API
+      const solAmount = usdAmount * solPerUsd
+      const amountInLamports = solAmount * LAMPORTS_PER_SOL
+      
+      const quote = await getQuote(
+        NATIVE_MINT.toBase58(),
+        selectedStock.contractAddress,
+        amountInLamports.toString()
+      )
+      
+      setQuoteData(quote)
+    } catch (error) {
+      console.error('Error getting quote:', error)
+      setQuoteData(null)
+    } finally {
+      setIsGettingQuote(false)
+    }
+  }
+
+  const handleBuyStock = async () => {
+    if (!selectedStock || !buyAmountUSD || !isConnected) return
     
     const usdAmount = parseFloat(buyAmountUSD)
     
@@ -170,12 +208,27 @@ export default function StocksPage() {
       return
     }
     
-    const sharesToBuy = usdAmount / parseFloat(selectedStock.priceUsd)
+    // Validate SOL balance (including 1% fee)
+    const solPerUsd = 0.01 // Approximate SOL/USD rate
+    const requiredSol = usdAmount * solPerUsd
+    const feeAmount = requiredSol * 0.01 // 1% fee
+    const totalRequiredSol = requiredSol + feeAmount
     
-    // Simulate transaction
-    alert(`Order placed: ${sharesToBuy.toFixed(6)} shares of ${selectedStock.symbol} for $${usdAmount.toFixed(2)}`)
-    setSelectedStock(null)
-    setBuyAmountUSD('')
+    if (solBalance < totalRequiredSol) {
+      alert(`Insufficient SOL balance. You need approximately ${totalRequiredSol.toFixed(4)} SOL (including ${feeAmount.toFixed(4)} SOL fee)`)
+      return
+    }
+    
+    try {
+      const result = await buyToken(selectedStock.contractAddress, requiredSol)
+      alert(`Successfully bought ${selectedStock.symbol}! Transaction: ${result.txId}\nFee: ${result.feeInSol.toFixed(4)} SOL ($${result.feeInUSD.toFixed(2)})`)
+      setSelectedStock(null)
+      setBuyAmountUSD('')
+      setQuoteData(null)
+    } catch (error) {
+      console.error('Buy failed:', error)
+      alert('Transaction failed. Please try again.')
+    }
   }
 
   const formatVolume = (volume: number) => {
@@ -294,6 +347,12 @@ export default function StocksPage() {
           <Card className="w-full max-w-md p-6">
             <h2 className="text-xl font-bold mb-4 text-white">Buy {selectedStock.symbol}</h2>
             
+            {!isConnected && (
+              <div className="mb-4 p-3 bg-red-900/20 border border-red-500/30 rounded-lg">
+                <p className="text-red-400 text-sm">Please connect your wallet to buy stocks</p>
+              </div>
+            )}
+            
             <div className="space-y-4">
               <div className="flex items-center justify-between p-3 bg-gray-800 rounded-lg">
                 <span className="text-gray-400">Current Price</span>
@@ -317,7 +376,15 @@ export default function StocksPage() {
                   type="number"
                   placeholder="0.00"
                   value={buyAmountUSD}
-                  onChange={(e) => setBuyAmountUSD(e.target.value)}
+                  onChange={(e) => {
+                    setBuyAmountUSD(e.target.value)
+                    const amount = parseFloat(e.target.value)
+                    if (amount >= 1.00) {
+                      getSwapQuote(amount)
+                    } else {
+                      setQuoteData(null)
+                    }
+                  }}
                   className="bg-gray-800 border-gray-700 text-white"
                 />
                 <p className="text-xs text-gray-500 mt-1">Minimum $1.00 - Buy fractional shares</p>
@@ -329,7 +396,10 @@ export default function StocksPage() {
                       key={amount}
                       variant="outline"
                       size="sm"
-                      onClick={() => setBuyAmountUSD(amount.toString())}
+                      onClick={() => {
+                        setBuyAmountUSD(amount.toString())
+                        getSwapQuote(amount)
+                      }}
                       className="h-8 text-xs"
                     >
                       ${amount}
@@ -341,15 +411,54 @@ export default function StocksPage() {
               {buyAmountUSD && (
                 <div className="space-y-2">
                   <div className="flex items-center justify-between p-3 bg-gray-800 rounded-lg">
-                    <span className="text-gray-400">Shares to Buy</span>
+                    <span className="text-gray-400">SOL Required</span>
                     <span className="font-semibold text-white">
-                      {(parseFloat(buyAmountUSD) / parseFloat(selectedStock.priceUsd)).toFixed(6)} shares
+                      {(parseFloat(buyAmountUSD) * 0.01).toFixed(4)} SOL
                     </span>
                   </div>
+                  
                   <div className="flex items-center justify-between p-3 bg-gray-800 rounded-lg">
-                    <span className="text-gray-400">Total Cost</span>
+                    <span className="text-gray-400">Platform Fee (1%)</span>
+                    <span className="font-semibold text-white text-yellow-400">
+                      {((parseFloat(buyAmountUSD) * 0.01) * 0.01).toFixed(4)} SOL
+                    </span>
+                  </div>
+                  
+                  <div className="flex items-center justify-between p-3 bg-gray-800 rounded-lg">
+                    <span className="text-gray-400">Total SOL Required</span>
+                    <span className="font-semibold text-white text-usdt">
+                      {((parseFloat(buyAmountUSD) * 0.01) * 1.01).toFixed(4)} SOL
+                    </span>
+                  </div>
+                  
+                  {isGettingQuote && (
+                    <div className="flex items-center justify-center p-3 bg-gray-800 rounded-lg">
+                      <Loader2 className="w-4 h-4 animate-spin text-usdt mr-2" />
+                      <span className="text-gray-400">Getting quote...</span>
+                    </div>
+                  )}
+                  
+                  {quoteData && !isGettingQuote && (
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between p-3 bg-gray-800 rounded-lg">
+                        <span className="text-gray-400">Estimated Output</span>
+                        <span className="font-semibold text-white">
+                          {parseFloat(quoteData.outAmount || '0').toFixed(6)} {selectedStock.symbol}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between p-3 bg-gray-800 rounded-lg">
+                        <span className="text-gray-400">Price Impact</span>
+                        <span className="font-semibold text-white">
+                          {parseFloat(quoteData.priceImpactPct || '0').toFixed(2)}%
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                  
+                  <div className="flex items-center justify-between p-3 bg-gray-800 rounded-lg">
+                    <span className="text-gray-400">Your SOL Balance</span>
                     <span className="font-semibold text-white">
-                      ${parseFloat(buyAmountUSD).toFixed(2)} USDT
+                      {solBalance.toFixed(4)} SOL
                     </span>
                   </div>
                 </div>
@@ -360,6 +469,7 @@ export default function StocksPage() {
                   onClick={() => {
                     setSelectedStock(null)
                     setBuyAmountUSD('')
+                    setQuoteData(null)
                   }}
                   variant="outline"
                   className="flex-1"
@@ -368,10 +478,17 @@ export default function StocksPage() {
                 </Button>
                 <Button
                   onClick={handleBuyStock}
-                  disabled={!buyAmountUSD || parseFloat(buyAmountUSD) < 1.00}
+                  disabled={!buyAmountUSD || parseFloat(buyAmountUSD) < 1.00 || isSwapLoading || !isConnected}
                   className="flex-1 bg-usdt hover:bg-primary-600"
                 >
-                  Buy Shares
+                  {isSwapLoading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                      Processing...
+                    </>
+                  ) : (
+                    'Buy Shares'
+                  )}
                 </Button>
               </div>
             </div>
