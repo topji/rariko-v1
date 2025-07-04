@@ -10,7 +10,6 @@ import { PageHeader } from '../../components/PageHeader'
 import { useSwap } from '../../hooks/useSwap'
 import { useDynamicWallet } from '../../hooks/useDynamicWallet'
 import { NATIVE_MINT } from '@solana/spl-token'
-import { LAMPORTS_PER_SOL } from '@solana/web3.js'
 
 // Contract addresses for different stocks
 const STOCK_CONTRACTS = [
@@ -97,12 +96,25 @@ export default function StocksPage() {
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [quoteData, setQuoteData] = useState<any>(null)
   const [isGettingQuote, setIsGettingQuote] = useState(false)
+  const [solPrice, setSolPrice] = useState<number>(0)
   
   const { buyToken, getQuote, isLoading: isSwapLoading } = useSwap()
   const { isConnected, tokenBalances } = useDynamicWallet()
   
   // SOL balance
   const solBalance = tokenBalances?.find(token => token.symbol === 'SOL')?.balance || 0
+
+  // Fetch SOL price
+  const fetchSolPrice = async () => {
+    try {
+      const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd')
+      const data = await response.json()
+      setSolPrice(data.solana.usd)
+    } catch (error) {
+      console.error('Error fetching SOL price:', error)
+      setSolPrice(0)
+    }
+  }
 
   // Fetch stock data from DexScreener API
   const fetchStockData = async (contractAddress: string, symbol: string, name: string): Promise<StockData> => {
@@ -163,6 +175,7 @@ export default function StocksPage() {
   // Initial data fetch
   useEffect(() => {
     fetchAllStocks()
+    fetchSolPrice()
   }, [])
 
   // Filter stocks based on search query
@@ -173,14 +186,13 @@ export default function StocksPage() {
 
   // Get quote for swap estimation
   const getSwapQuote = async (usdAmount: number) => {
-    if (!selectedStock || !isConnected) return
+    if (!selectedStock || !isConnected || solPrice === 0) return
     
     setIsGettingQuote(true)
     try {
-      // Convert USD to SOL (approximate rate - in real app, you'd get this from price feed)
-      const solPerUsd = 0.01 // Approximate SOL/USD rate - should be fetched from price API
-      const solAmount = usdAmount * solPerUsd
-      const amountInLamports = solAmount * LAMPORTS_PER_SOL
+      // Calculate SOL amount from USD using real price
+      const solAmount = usdAmount / solPrice
+      const amountInLamports = solAmount * 1e9
       
       const quote = await getQuote(
         NATIVE_MINT.toBase58(),
@@ -198,7 +210,7 @@ export default function StocksPage() {
   }
 
   const handleBuyStock = async () => {
-    if (!selectedStock || !buyAmountUSD || !isConnected) return
+    if (!selectedStock || !buyAmountUSD || !isConnected || solPrice === 0) return
     
     const usdAmount = parseFloat(buyAmountUSD)
     
@@ -209,10 +221,9 @@ export default function StocksPage() {
     }
     
     // Validate SOL balance (including 1% fee)
-    const solPerUsd = 0.01 // Approximate SOL/USD rate
-    const requiredSol = usdAmount * solPerUsd
-    const feeAmount = requiredSol * 0.01 // 1% fee
-    const totalRequiredSol = requiredSol + feeAmount
+    const solAmount = usdAmount / solPrice
+    const feeAmount = solAmount * 0.01 // 1% fee
+    const totalRequiredSol = solAmount + feeAmount
     
     if (solBalance < totalRequiredSol) {
       alert(`Insufficient SOL balance. You need approximately ${totalRequiredSol.toFixed(4)} SOL (including ${feeAmount.toFixed(4)} SOL fee)`)
@@ -220,8 +231,8 @@ export default function StocksPage() {
     }
     
     try {
-      const result = await buyToken(selectedStock.contractAddress, requiredSol)
-      alert(`Successfully bought ${selectedStock.symbol}! Transaction: ${result.txId}\nFee: ${result.feeInSol.toFixed(4)} SOL ($${result.feeInUSD.toFixed(2)})`)
+      const result = await buyToken(selectedStock.contractAddress, usdAmount)
+      alert(`Successfully bought ${selectedStock.symbol}! Transaction: ${result.txId}\nFee: $${result.feeInUSD.toFixed(2)}`)
       setSelectedStock(null)
       setBuyAmountUSD('')
       setQuoteData(null)
@@ -246,7 +257,7 @@ export default function StocksPage() {
   return (
     <div className="min-h-screen bg-gray-900 text-white pb-20">
       {/* Header */}
-              <PageHeader showProfile={true} 
+      <PageHeader showProfile={true} 
         showRefresh={true}
         onRefresh={() => fetchAllStocks(true)}
         isRefreshing={isRefreshing}
@@ -411,23 +422,9 @@ export default function StocksPage() {
               {buyAmountUSD && (
                 <div className="space-y-2">
                   <div className="flex items-center justify-between p-3 bg-gray-800 rounded-lg">
-                    <span className="text-gray-400">SOL Required</span>
-                    <span className="font-semibold text-white">
-                      {(parseFloat(buyAmountUSD) * 0.01).toFixed(4)} SOL
-                    </span>
-                  </div>
-                  
-                  <div className="flex items-center justify-between p-3 bg-gray-800 rounded-lg">
                     <span className="text-gray-400">Platform Fee (1%)</span>
                     <span className="font-semibold text-white text-yellow-400">
-                      {((parseFloat(buyAmountUSD) * 0.01) * 0.01).toFixed(4)} SOL
-                    </span>
-                  </div>
-                  
-                  <div className="flex items-center justify-between p-3 bg-gray-800 rounded-lg">
-                    <span className="text-gray-400">Total SOL Required</span>
-                    <span className="font-semibold text-white text-usdt">
-                      {((parseFloat(buyAmountUSD) * 0.01) * 1.01).toFixed(4)} SOL
+                      ${(parseFloat(buyAmountUSD) * 0.01).toFixed(2)}
                     </span>
                   </div>
                   
@@ -443,7 +440,7 @@ export default function StocksPage() {
                       <div className="flex items-center justify-between p-3 bg-gray-800 rounded-lg">
                         <span className="text-gray-400">Estimated Output</span>
                         <span className="font-semibold text-white">
-                          {parseFloat(quoteData.outAmount || '0').toFixed(6)} {selectedStock.symbol}
+                          {parseFloat(quoteData.outAmount || '0').toFixed(2)} {selectedStock.symbol}
                         </span>
                       </div>
                       <div className="flex items-center justify-between p-3 bg-gray-800 rounded-lg">
