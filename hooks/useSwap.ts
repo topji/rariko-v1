@@ -54,9 +54,10 @@ export function useSwap() {
       
       // Calculate SOL amount from USD
       const solAmount = usdAmount / solPrice;
-      const amountInLamports = solAmount * LAMPORTS_PER_SOL;
+      const amountInLamports = Math.floor(solAmount * LAMPORTS_PER_SOL);
 
       console.log('🔄 Getting swap quote...');
+      console.log('Amount in lamports:', amountInLamports);
       
       // Step 1: Get quote
       const quoteResponse = await axios.get('https://lite-api.jup.ag/swap/v1/quote', {
@@ -209,9 +210,10 @@ export function useSwap() {
       // Get token decimals
       const tokenMint = new PublicKey(mintAddress);
       const mintInfo = await getMint(connection, tokenMint);
-      const tokenAmountWithDecimals = tokenAmount * Math.pow(10, mintInfo.decimals);
+      const tokenAmountWithDecimals = Math.floor(tokenAmount * Math.pow(10, mintInfo.decimals));
 
       console.log('🔄 Getting sell quote...');
+      console.log('Token amount with decimals:', tokenAmountWithDecimals);
 
       // Get quote
       const quoteResponse = await axios.get('https://quote-api.jup.ag/v6/quote', {
@@ -341,11 +343,14 @@ export function useSwap() {
 
   const getQuote = async (inputMint: string, outputMint: string, amount: string) => {
     try {
+      // Ensure amount is an integer string
+      const amountInt = Math.floor(parseFloat(amount)).toString();
+      
       const response = await axios.get('https://lite-api.jup.ag/swap/v1/quote', {
         params: {
           inputMint,
           outputMint,
-          amount,
+          amount: amountInt,
           slippageBps: 100,
           swapMode: 'ExactIn',
           onlyDirectRoutes: false,
