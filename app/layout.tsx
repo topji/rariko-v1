@@ -16,7 +16,12 @@ export const metadata: Metadata = {
   manifest: '/manifest.json',
   icons: {
     icon: '/favicon.svg',
-    apple: '/favicon.svg',
+    apple: '/apple-touch-icon.svg',
+  },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'RariKo',
   },
 }
 
@@ -32,8 +37,12 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="apple-mobile-web-app-title" content="RariKo" />
         <meta name="mobile-web-app-capable" content="yes" />
-        <meta name="msapplication-TileColor" content="#1DBF73" />
+        <meta name="msapplication-TileColor" content="#8B5CF6" />
         <meta name="msapplication-tap-highlight" content="no" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.svg" />
+        <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.svg" />
+        <link rel="apple-touch-icon" sizes="192x192" href="/icon-192x192.svg" />
+        <link rel="apple-touch-icon" sizes="512x512" href="/icon-512x512.svg" />
       </head>
       <body className={inter.className} suppressHydrationWarning>
         <DynamicContextProvider
