@@ -70,18 +70,22 @@ export function useSwap() {
       console.log('Amount in lamports:', amountInLamports);
       console.log('Wallet balance in lamports:', balance);
       
-      // Check minimum amount (at least 0.001 SOL)
-      const minSolAmount = 0.001;
+      // Check minimum amount (at least 0.01 SOL)
+      const minSolAmount = 0.01;
       if (solAmount < minSolAmount) {
         throw new Error(`Amount too small. Minimum is ${minSolAmount} SOL (≈ $${(minSolAmount * solPrice).toFixed(2)})`);
       }
       
       // Check if user has enough SOL (including fees)
-      const estimatedFee = 0.005 * LAMPORTS_PER_SOL; // 0.005 SOL for fees
+      const estimatedFee = 0.01 * LAMPORTS_PER_SOL; // 0.01 SOL for fees (increased)
       const totalRequired = amountInLamports + estimatedFee;
       
-      if (totalRequired > balance) {
-        throw new Error(`Insufficient SOL balance. Need ${solAmount.toFixed(4)} SOL + fees, have ${(balance / LAMPORTS_PER_SOL).toFixed(4)} SOL`);
+      // Leave some buffer for rent and other fees
+      const bufferAmount = 0.005 * LAMPORTS_PER_SOL; // 0.005 SOL buffer
+      const totalWithBuffer = totalRequired + bufferAmount;
+      
+      if (totalWithBuffer > balance) {
+        throw new Error(`Insufficient SOL balance. Need ${solAmount.toFixed(4)} SOL + fees + buffer, have ${(balance / LAMPORTS_PER_SOL).toFixed(4)} SOL. Please ensure you have at least ${((solAmount + 0.015) * solPrice).toFixed(2)} USD worth of SOL.`);
       }
       
       // Step 1: Get quote using v6 API for better optimization
@@ -196,7 +200,7 @@ export function useSwap() {
             if ('InstructionError' in error) {
               const [index, instructionError] = error.InstructionError as [number, any];
               if (instructionError === 'ProgramFailedToComplete') {
-                throw new Error(`Swap failed: Program execution failed. This usually means insufficient SOL for fees or the swap amount is too small. Try with a larger amount or ensure you have enough SOL for transaction fees.`);
+                throw new Error(`Swap failed: Program execution failed. This usually means insufficient SOL for fees or the swap amount is too small. Try with at least $5-10 USD worth of SOL and ensure you have enough SOL for transaction fees.`);
               }
             }
           }
