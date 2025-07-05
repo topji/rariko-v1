@@ -14,60 +14,11 @@ export function Logo({ size = 'md', className = '' }: LogoProps) {
 
   return (
     <div className={`${sizeClasses[size]} ${className}`}>
-      <svg
-        viewBox="0 0 48 48"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-        className="w-full h-full"
-      >
-        {/* Background Circle */}
-        <circle cx="24" cy="24" r="24" fill="url(#logoGradient)" />
-        
-        {/* Main Chart Line */}
-        <path
-          d="M12 32 L18 28 L24 30 L30 24 L36 20 L42 16"
-          stroke="white"
-          strokeWidth="2.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          fill="none"
-        />
-        
-        {/* Chart Dots */}
-        <circle cx="18" cy="28" r="2" fill="white" />
-        <circle cx="24" cy="30" r="2" fill="white" />
-        <circle cx="30" cy="24" r="2" fill="white" />
-        <circle cx="36" cy="20" r="2" fill="white" />
-        
-        {/* R Letter Stylized */}
-        <path
-          d="M16 18 L16 30 M16 18 L22 18 Q26 18 26 22 L26 24 Q26 28 22 28 L16 28 M22 28 L26 30"
-          stroke="white"
-          strokeWidth="2.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          fill="none"
-        />
-        
-        {/* K Letter Stylized */}
-        <path
-          d="M28 18 L28 30 M28 24 L32 20 M28 24 L32 28"
-          stroke="white"
-          strokeWidth="2.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          fill="none"
-        />
-        
-        {/* Gradient Definition */}
-        <defs>
-          <linearGradient id="logoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#10B981" />
-            <stop offset="50%" stopColor="#3B82F6" />
-            <stop offset="100%" stopColor="#8B5CF6" />
-          </linearGradient>
-        </defs>
-      </svg>
+      <img
+        src="/rarikov1-logo.png"
+        alt="RariKo Logo"
+        className="w-full h-full object-contain"
+      />
     </div>
   )
 }
