@@ -11,69 +11,71 @@ import { useSwap } from '../../hooks/useSwap'
 import { useDynamicWallet } from '../../hooks/useDynamicWallet'
 import { NATIVE_MINT } from '@solana/spl-token'
 
-// Contract addresses for different stocks
-const STOCK_CONTRACTS = [
-  { address: 'XsHtf5RpxsQ7jeJ9ivNewouZKJHbPxhPoEy6yYvULr7', symbol: 'AAPLx', name: 'Apple xStock' },
-  { address: 'XswbinNKyPmzTa5CskMbCPvMW6G5CMnZXZEeQSSQoie', symbol: 'MSFTx', name: 'Microsoft xStock' },
-  { address: 'Xs5UJzmCRQ8DWZjskExdSQDnbE6iLkRu2jjrRAB1JSU', symbol: 'TSLAx', name: 'Tesla xStock' },
-  { address: 'XsCPL9dNWBMvFtTmwcCA5v3xWPSMEBCszbQdiLLq6aN', symbol: 'GOOGLx', name: 'Alphabet xStock' },
-  { address: 'Xs3eBt7uRfJX8QUs4suhyU8p2M6DoUDrJyWBa8LLZsg', symbol: 'AMZNx', name: 'Amazon xStock' },
-  { address: 'XsaQTCgebC2KPbf27KUhdv5JFvHhQ4GDAPURwrEhAzb', symbol: 'NVDAx', name: 'NVIDIA xStock' },
-  { address: 'XsbEhLAtcf6HdfpFZ5xEMdqW8nfAvcsP5bdudRLJzJp', symbol: 'METAx', name: 'Meta xStock' },
-  { address: 'XsPdAVBi8Zc1xvv53k4JcMrQaEDTgkGqKYeh7AYgPHV', symbol: 'NFLXx', name: 'Netflix xStock' },
-  { address: 'Xs3ZFkPYT2BN7qBMqf1j1bfTeTm1rFzEFSsQ1z3wAKU', symbol: 'SPYx', name: 'SPDR S&P 500 xStock' },
-  { address: 'XswsQk4duEQmCbGzfqUUWYmi7pV7xpJ9eEmLHXCaEQP', symbol: 'BRKx', name: 'Berkshire Hathaway xStock' },
-  { address: 'Xs6B6zawENwAbWVi7w92rjazLuAr5Az59qgWKcNb45x', symbol: 'JPMx', name: 'JPMorgan Chase xStock' },
-  { address: 'XsgSaSvNSqLTtFuyWPBhK9196Xb9Bbdyjj4fH3cPJGo', symbol: 'JNJx', name: 'Johnson & Johnson xStock' },
-  { address: 'XsNNMt7WTNA2sV3jrb1NNfNgapxRF5i4i6GcnTRRHts', symbol: 'Vx', name: 'Visa xStock' },
-  { address: 'XsueG8BtpquVJX9LVLLEGuViXUungE6WmK5YZ3p3bd1', symbol: 'PGx', name: 'Procter & Gamble xStock' },
-  { address: 'Xsr3pdLQyXvDJBFgpR5nexCEZwXvigb8wbPYp4YoNFf', symbol: 'HDx', name: 'Home Depot xStock' },
-  { address: 'XsaBXg8dU5cPM6ehmVctMkVqoiRG2ZjMo1cyBJ3AykQ', symbol: 'MAx', name: 'Mastercard xStock' },
-  { address: 'Xs7ZdzSHLU9ftNJsii5fCeJhoRWSC32SQGzGQtePxNu', symbol: 'UNHx', name: 'UnitedHealth xStock' },
-  { address: 'XsvKCaNsxg2GN8jjUmq71qukMJr7Q1c5R2Mk9P8kcS8', symbol: 'DISx', name: 'Disney xStock' },
-  { address: 'Xs7xXqkcK7K8urEqGg52SECi79dRp2cEKKuYjUePYDw', symbol: 'PYPLx', name: 'PayPal xStock' },
-  { address: 'Xseo8tgCZfkHxWS9xbFYeKFyMSbWEvZGFV1Gh53GtCV', symbol: 'ADBEx', name: 'Adobe xStock' },
-  { address: 'Xs2yquAgsHByNzx68WJC55WHjHBvG9JsMB7CWjTLyPy', symbol: 'CRMx', name: 'Salesforce xStock' },
-  { address: 'Xsnuv4omNoHozR6EEW5mXkw8Nrny5rB3jVfLqi6gKMH', symbol: 'NKEx', name: 'Nike xStock' },
-  { address: 'XsaHND8sHyfMfsWPj6kSdd5VwvCayZvjYgKmmcNL5qh', symbol: 'INTCx', name: 'Intel xStock' },
-  { address: 'Xsf9mBktVB9BSU5kf4nHxPq5hCBJ2j2ui3ecFGxPRGc', symbol: 'VZx', name: 'Verizon xStock' },
-  { address: 'Xsv9hRk1z5ystj9MhnA7Lq4vjSsLwzL2nxrwmwtD3re', symbol: 'CMCSAx', name: 'Comcast xStock' },
-  { address: 'XsgaUyp4jd1fNBCxgtTKkW64xnnhQcvgaxzsbAq5ZD1', symbol: 'PEPx', name: 'PepsiCo xStock' },
-  { address: 'XszjVtyhowGjSC5odCqBpW1CtXXwXjYokymrk7fGKD3', symbol: 'ABTx', name: 'Abbott xStock' },
-  { address: 'XsRbLZthfABAPAfumWNEJhPyiKDW6TvDVeAeW7oKqA2', symbol: 'TMOx', name: 'Thermo Fisher xStock' },
-  { address: 'XshPgPdXFRWB8tP1j82rebb2Q9rPgGX37RuqzohmArM', symbol: 'COSTx', name: 'Costco xStock' },
-  { address: 'XspwhyYPdWVM8XBHZnpS9hgyag9MKjLRyE3tVfmCbSr', symbol: 'DHRx', name: 'Danaher xStock' },
-  { address: 'XsGVi5eo1Dh2zUpic4qACcjuWGjNv8GCt3dm5XcX6Dn', symbol: 'ACNx', name: 'Accenture xStock' },
-  { address: 'XsMAqkcKsUewDrzVkait4e5u4y8REgtyS7jWgCpLV2C', symbol: 'LLYx', name: 'Eli Lilly xStock' },
-  { address: 'XsSr8anD1hkvNMu8XQiVcmiaTP7XGvYu7Q58LdmtE8Z', symbol: 'TXNx', name: 'Texas Instruments xStock' },
-  { address: 'XsuxRGDzbLjnJ72v74b7p9VY6N66uYgTCyfwwRjVCJA', symbol: 'HONx', name: 'Honeywell xStock' },
-  { address: 'XsApJFV9MAktqnAc6jqzsHVujxkGm9xcSUffaBoYLKC', symbol: 'ISRGx', name: 'Intuitive Surgical xStock' },
-  { address: 'XsqE9cRRpzxcGKDXj1BJ7Xmg4GRhZoyY1KpmGSxAWT2', symbol: 'GILDx', name: 'Gilead Sciences xStock' },
-  { address: 'XsDgw22qRLTv5Uwuzn6T63cW69exG41T6gwQhEK22u2', symbol: 'AMGNx', name: 'Amgen xStock' },
-  { address: 'XsnQnU7AdbRZYe2akqqpibDdXjkieGFfSkbkjX1Sd1X', symbol: 'MDLZx', name: 'Mondelez xStock' },
-  { address: 'Xsa62P5mvPszXL1krVUnU5ar38bBSVcWAB6fmPCo5Zu', symbol: 'BKNGx', name: 'Booking Holdings xStock' },
-  { address: 'XspzcW1PRtgf6Wj92HCiZdjzKCyFekVD8P5Ueh3dRMX', symbol: 'ADIx', name: 'Analog Devices xStock' },
-  { address: 'XsP7xzNPvEHS1m6qfanPUGjNmdnmsLKEoNAnHjdxxyZ', symbol: 'REGNx', name: 'Regeneron xStock' },
-  { address: 'Xs8S1uUs1zvS2p7iwtsG3b6fkhpvmwz4GYU3gWAmWHZ', symbol: 'VRTXx', name: 'Vertex Pharmaceuticals xStock' },
-  { address: 'XsEH7wWfJJu2ZT3UCFeVfALnVA6CP5ur7Ee11KmzVpL', symbol: 'KLACx', name: 'KLA Corporation xStock' },
-  { address: 'XsfAzPzYrYjd4Dpa9BU3cusBsvWfVB9gBcyGC87S57n', symbol: 'PANWx', name: 'Palo Alto Networks xStock' },
-  { address: 'Xsc9qvGR1efVDFGLrVsmkzv3qi45LTBjeUKSPmx9qEh', symbol: 'SNPSx', name: 'Synopsys xStock' },
-  { address: 'XsjFwUPiLofddX5cWFHW35GCbXcSu1BCUGfxoQAQjeL', symbol: 'CDNSx', name: 'Cadence Design xStock' },
-  { address: 'XsoBhf2ufR8fTyNSjqfU71DYGaE6Z3SUGAidpzriAA4', symbol: 'MUx', name: 'Micron Technology xStock' },
-  { address: 'Xsv99frTRUeornyvCfvhnDesQDWuvns1M852Pez91vF', symbol: 'ORCLx', name: 'Oracle xStock' },
-  { address: 'XsAtbqkAP1HJxy7hFDeq7ok6yM43DQ9mQ1Rh861X8rw', symbol: 'CSCOx', name: 'Cisco Systems xStock' },
-  { address: 'Xsba6tUnSjDae2VcopDB6FGGDaxRrewFCDa5hKn5vT3', symbol: 'PFEx', name: 'Pfizer xStock' },
-  { address: 'XsYdjDjNUygZ7yGKfQaB6TxLh2gC6RRjzLtLAGJrhzV', symbol: 'ABBVx', name: 'AbbVie xStock' },
-  { address: 'XsvNBAYkrDRNhA7wPHQfX3ZUXZyZLdnCQDfHZ56bzpg', symbol: 'BMYx', name: 'Bristol-Myers Squibb xStock' },
-  { address: 'XsczbcQ3zfcgAEt9qHQES8pxKAVG5rujPSHQEXi4kaN', symbol: 'TMOx', name: 'Thermo Fisher Scientific xStock' },
-  { address: 'XsoCS1TfEyfFhfvj8EtZ528L3CaKBDBRqRapnBbDF2W', symbol: 'DEOx', name: 'Diageo xStock' },
-  { address: 'XsDoVfqeBukxuZHWhdvWHBhgEHjGNst4MLodqsJHzoB', symbol: 'ELVx', name: 'Elevance Health xStock' },
-  { address: 'Xs8drBWy3Sd5QY3aifG9kt9KFs2K3PGZmx7jWrsrk57', symbol: 'TJXx', name: 'TJX Companies xStock' },
-  { address: 'XsjQP3iMAaQ3kQScQKthQpx9ALRbjKAjQtHg6TFomoc', symbol: 'ITWx', name: 'Illinois Tool Works xStock' },
-  { address: 'XszvaiXGPwvk2nwb3o9C1CX4K6zH8sez11E6uyup6fe', symbol: 'SYKx', name: 'Stryker xStock' },
-  { address: 'XsssYEQjzxBCFgvYFFNuhJFBeHNdLWYeUSP8F45cDr9', symbol: 'SPGIx', name: 'S&P Global xStock' },
-  { address: 'XsqgsbXwWogGJsNcVZ3TyVouy2MbTkfCFhCGGGcQZ2p', symbol: 'ICEx', name: 'Intercontinental Exchange xStock' },
-  { address: 'Xs151QeqTCiuKtinzfRATnUESM2xTU6V9Wy8Vy538ci', symbol: 'SHWx', name: 'Sherwin-Williams xStock' },
+// Single token address for all stocks
+const TOKEN_ADDRESS = 'Xsc9qvGR1efVDFGLrVsmkzv3qi45LTBjeUKSPmx9qEh'
+
+// Stock symbols and names
+const STOCK_SYMBOLS = [
+  { symbol: 'AAPLx', name: 'Apple xStock' },
+  { symbol: 'MSFTx', name: 'Microsoft xStock' },
+  { symbol: 'TSLAx', name: 'Tesla xStock' },
+  { symbol: 'GOOGLx', name: 'Alphabet xStock' },
+  { symbol: 'AMZNx', name: 'Amazon xStock' },
+  { symbol: 'NVDAx', name: 'NVIDIA xStock' },
+  { symbol: 'METAx', name: 'Meta xStock' },
+  { symbol: 'NFLXx', name: 'Netflix xStock' },
+  { symbol: 'SPYx', name: 'SPDR S&P 500 xStock' },
+  { symbol: 'BRKx', name: 'Berkshire Hathaway xStock' },
+  { symbol: 'JPMx', name: 'JPMorgan Chase xStock' },
+  { symbol: 'JNJx', name: 'Johnson & Johnson xStock' },
+  { symbol: 'Vx', name: 'Visa xStock' },
+  { symbol: 'PGx', name: 'Procter & Gamble xStock' },
+  { symbol: 'HDx', name: 'Home Depot xStock' },
+  { symbol: 'MAx', name: 'Mastercard xStock' },
+  { symbol: 'UNHx', name: 'UnitedHealth xStock' },
+  { symbol: 'DISx', name: 'Disney xStock' },
+  { symbol: 'PYPLx', name: 'PayPal xStock' },
+  { symbol: 'ADBEx', name: 'Adobe xStock' },
+  { symbol: 'CRMx', name: 'Salesforce xStock' },
+  { symbol: 'NKEx', name: 'Nike xStock' },
+  { symbol: 'INTCx', name: 'Intel xStock' },
+  { symbol: 'VZx', name: 'Verizon xStock' },
+  { symbol: 'CMCSAx', name: 'Comcast xStock' },
+  { symbol: 'PEPx', name: 'PepsiCo xStock' },
+  { symbol: 'ABTx', name: 'Abbott xStock' },
+  { symbol: 'TMOx', name: 'Thermo Fisher xStock' },
+  { symbol: 'COSTx', name: 'Costco xStock' },
+  { symbol: 'DHRx', name: 'Danaher xStock' },
+  { symbol: 'ACNx', name: 'Accenture xStock' },
+  { symbol: 'LLYx', name: 'Eli Lilly xStock' },
+  { symbol: 'TXNx', name: 'Texas Instruments xStock' },
+  { symbol: 'HONx', name: 'Honeywell xStock' },
+  { symbol: 'ISRGx', name: 'Intuitive Surgical xStock' },
+  { symbol: 'GILDx', name: 'Gilead Sciences xStock' },
+  { symbol: 'AMGNx', name: 'Amgen xStock' },
+  { symbol: 'MDLZx', name: 'Mondelez xStock' },
+  { symbol: 'BKNGx', name: 'Booking Holdings xStock' },
+  { symbol: 'ADIx', name: 'Analog Devices xStock' },
+  { symbol: 'REGNx', name: 'Regeneron xStock' },
+  { symbol: 'VRTXx', name: 'Vertex Pharmaceuticals xStock' },
+  { symbol: 'KLACx', name: 'KLA Corporation xStock' },
+  { symbol: 'PANWx', name: 'Palo Alto Networks xStock' },
+  { symbol: 'SNPSx', name: 'Synopsys xStock' },
+  { symbol: 'CDNSx', name: 'Cadence Design xStock' },
+  { symbol: 'MUx', name: 'Micron Technology xStock' },
+  { symbol: 'ORCLx', name: 'Oracle xStock' },
+  { symbol: 'CSCOx', name: 'Cisco Systems xStock' },
+  { symbol: 'PFEx', name: 'Pfizer xStock' },
+  { symbol: 'ABBVx', name: 'AbbVie xStock' },
+  { symbol: 'BMYx', name: 'Bristol-Myers Squibb xStock' },
+  { symbol: 'DEOx', name: 'Diageo xStock' },
+  { symbol: 'ELVx', name: 'Elevance Health xStock' },
+  { symbol: 'TJXx', name: 'TJX Companies xStock' },
+  { symbol: 'ITWx', name: 'Illinois Tool Works xStock' },
+  { symbol: 'SYKx', name: 'Stryker xStock' },
+  { symbol: 'SPGIx', name: 'S&P Global xStock' },
+  { symbol: 'ICEx', name: 'Intercontinental Exchange xStock' },
+  { symbol: 'SHWx', name: 'Sherwin-Williams xStock' },
 ]
 
 interface StockData {
@@ -97,6 +99,7 @@ export default function StocksPage() {
   const [quoteData, setQuoteData] = useState<any>(null)
   const [isGettingQuote, setIsGettingQuote] = useState(false)
   const [solPrice, setSolPrice] = useState<number>(0)
+  const [tokenPrice, setTokenPrice] = useState<number>(0)
   
   const { buyToken, getQuote, isLoading: isSwapLoading } = useSwap()
   const { isConnected, tokenBalances } = useDynamicWallet()
@@ -116,10 +119,29 @@ export default function StocksPage() {
     }
   }
 
-  // Fetch stock data from DexScreener API
-  const fetchStockData = async (contractAddress: string, symbol: string, name: string): Promise<StockData> => {
+  // Fetch token price from Jupiter lite API
+  const fetchTokenPrice = async () => {
     try {
-      const response = await fetch(`https://api.dexscreener.com/tokens/v1/solana/${contractAddress}`)
+      const response = await fetch(`https://lite-api.jup.ag/price/v3?ids=${TOKEN_ADDRESS}`)
+      const data = await response.json()
+      
+      if (data && data[TOKEN_ADDRESS]) {
+        setTokenPrice(data[TOKEN_ADDRESS].usdPrice)
+        return data[TOKEN_ADDRESS]
+      } else {
+        throw new Error('No price data received')
+      }
+    } catch (error) {
+      console.error('Error fetching token price:', error)
+      setTokenPrice(0)
+      return null
+    }
+  }
+
+  // Fetch stock data from DexScreener API for additional data
+  const fetchStockData = async (symbol: string, name: string): Promise<StockData> => {
+    try {
+      const response = await fetch(`https://api.dexscreener.com/tokens/v1/solana/${TOKEN_ADDRESS}`)
       const data = await response.json()
       
       if (data && data.length > 0) {
@@ -127,10 +149,10 @@ export default function StocksPage() {
         return {
           symbol,
           name,
-          priceUsd: stock.priceUsd || '0',
+          priceUsd: tokenPrice.toString() || stock.priceUsd || '0',
           volume24h: stock.volume?.h24 || 0,
           priceChange24h: stock.priceChange?.h24 || 0,
-          contractAddress,
+          contractAddress: TOKEN_ADDRESS,
         }
       } else {
         throw new Error('No data received')
@@ -140,10 +162,10 @@ export default function StocksPage() {
       return {
         symbol,
         name,
-        priceUsd: '0',
+        priceUsd: tokenPrice.toString() || '0',
         volume24h: 0,
         priceChange24h: 0,
-        contractAddress,
+        contractAddress: TOKEN_ADDRESS,
         error: 'Failed to load data'
       }
     }
@@ -158,8 +180,12 @@ export default function StocksPage() {
     }
 
     try {
-      const promises = STOCK_CONTRACTS.map(stock => 
-        fetchStockData(stock.address, stock.symbol, stock.name)
+      // First fetch token price from Jupiter
+      const priceData = await fetchTokenPrice()
+      
+      // Then fetch additional data from DexScreener
+      const promises = STOCK_SYMBOLS.map(stock => 
+        fetchStockData(stock.symbol, stock.name)
       )
       
       const results = await Promise.all(promises)
