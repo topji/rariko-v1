@@ -14,8 +14,6 @@ export default function DisclaimerModal({ isOpen, onAccept }: DisclaimerModalPro
 
   const handleAccept = () => {
     if (hasAccepted) {
-      // Store in localStorage to remember user has accepted
-      localStorage.setItem('rariko-disclaimer-accepted', 'true')
       onAccept()
     }
   }

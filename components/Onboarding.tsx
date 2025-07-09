@@ -12,17 +12,12 @@ export default function Onboarding() {
   const router = useRouter();
   const [showDisclaimer, setShowDisclaimer] = useState(false);
 
-  // Check if disclaimer has been accepted
+  // Show disclaimer every time user logs in
   useEffect(() => {
     if (primaryWallet?.address) {
-      const disclaimerAccepted = localStorage.getItem('rariko-disclaimer-accepted');
-      if (disclaimerAccepted === 'true') {
-        router.push('/');
-      } else {
-        setShowDisclaimer(true);
-      }
+      setShowDisclaimer(true);
     }
-  }, [primaryWallet?.address, router]);
+  }, [primaryWallet?.address]);
 
   const handleDisclaimerAccept = () => {
     setShowDisclaimer(false);
