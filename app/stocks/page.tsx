@@ -158,19 +158,22 @@ export default function StocksPage() {
     
     const usdAmount = parseFloat(buyAmountUSD)
     
-    // Validate minimum amount
-    if (usdAmount < 1.00) {
-      alert('Minimum purchase amount is $1.00')
+    // Validate minimum amount (increased to avoid "Program failed to complete" error)
+    const minSolAmount = 0.05 // 0.05 SOL minimum
+    const minUsdAmount = minSolAmount * solPrice
+    if (usdAmount < minUsdAmount) {
+      alert(`Minimum purchase amount is $${minUsdAmount.toFixed(2)} (${minSolAmount} SOL). Try with at least $${minUsdAmount.toFixed(2)} USD.`)
       return
     }
     
-    // Validate SOL balance (including 1% fee)
+    // Validate SOL balance (including 1% fee and increased buffer)
     const solAmount = usdAmount / solPrice
     const feeAmount = solAmount * 0.01 // 1% fee
-    const totalRequiredSol = solAmount + feeAmount
+    const bufferAmount = 0.03 * solPrice // Increased buffer for fees
+    const totalRequiredSol = solAmount + feeAmount + (bufferAmount / solPrice)
     
     if (solBalance < totalRequiredSol) {
-      alert(`Insufficient SOL balance. You need approximately ${totalRequiredSol.toFixed(4)} SOL (including ${feeAmount.toFixed(4)} SOL fee)`)
+      alert(`Insufficient SOL balance. You need approximately ${totalRequiredSol.toFixed(4)} SOL (including ${feeAmount.toFixed(4)} SOL fee + buffer). Please ensure you have at least $${((solAmount + 0.03) * solPrice).toFixed(2)} USD worth of SOL.`)
       return
     }
     
@@ -328,11 +331,11 @@ export default function StocksPage() {
                   }}
                   className="bg-gray-800 border-gray-700 text-white"
                 />
-                <p className="text-xs text-gray-500 mt-1">Minimum $1.00 - Buy fractional tokens</p>
+                <p className="text-xs text-gray-500 mt-1">Minimum $10-20 USD - Buy fractional tokens</p>
                 
                 {/* Quick Amount Buttons */}
                 <div className="grid grid-cols-3 gap-2 mt-3">
-                  {[10, 25, 50, 100, 250, 500].map((amount) => (
+                  {[25, 50, 100, 250, 500, 1000].map((amount) => (
                     <Button
                       key={amount}
                       variant="outline"

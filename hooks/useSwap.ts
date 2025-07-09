@@ -70,22 +70,22 @@ export function useSwap() {
       console.log('Amount in lamports:', amountInLamports);
       console.log('Wallet balance in lamports:', balance);
       
-      // Check minimum amount (at least 0.01 SOL)
-      const minSolAmount = 0.01;
+      // Increased minimum amount to avoid "Program failed to complete" error
+      const minSolAmount = 0.05; // Increased from 0.01 to 0.05 SOL
       if (solAmount < minSolAmount) {
-        throw new Error(`Amount too small. Minimum is ${minSolAmount} SOL (≈ $${(minSolAmount * solPrice).toFixed(2)})`);
+        throw new Error(`Amount too small. Minimum is ${minSolAmount} SOL (≈ $${(minSolAmount * solPrice).toFixed(2)}). Try with at least $${(minSolAmount * solPrice).toFixed(2)} USD.`);
       }
       
       // Check if user has enough SOL (including fees)
-      const estimatedFee = 0.01 * LAMPORTS_PER_SOL; // 0.01 SOL for fees (increased)
+      const estimatedFee = 0.02 * LAMPORTS_PER_SOL; // Increased fee estimation
       const totalRequired = amountInLamports + estimatedFee;
       
       // Leave some buffer for rent and other fees
-      const bufferAmount = 0.005 * LAMPORTS_PER_SOL; // 0.005 SOL buffer
+      const bufferAmount = 0.01 * LAMPORTS_PER_SOL; // Increased buffer
       const totalWithBuffer = totalRequired + bufferAmount;
       
       if (totalWithBuffer > balance) {
-        throw new Error(`Insufficient SOL balance. Need ${solAmount.toFixed(4)} SOL + fees + buffer, have ${(balance / LAMPORTS_PER_SOL).toFixed(4)} SOL. Please ensure you have at least ${((solAmount + 0.015) * solPrice).toFixed(2)} USD worth of SOL.`);
+        throw new Error(`Insufficient SOL balance. Need ${solAmount.toFixed(4)} SOL + fees + buffer, have ${(balance / LAMPORTS_PER_SOL).toFixed(4)} SOL. Please ensure you have at least ${((solAmount + 0.03) * solPrice).toFixed(2)} USD worth of SOL.`);
       }
       
       // Step 1: Get quote using v6 API for better optimization
@@ -112,54 +112,92 @@ export function useSwap() {
       
       let swapResponse;
       let useLegacyTransaction = false;
+      let simulationError = null;
       
-      // Try versioned transaction first, fallback to legacy if it fails
-      try {
-        const swapRequestData = {
-          userPublicKey: signer.publicKey?.toString() || '',
-          quoteResponse: quoteResponse.data,
-          feeAccount: SWAP_FEES.FEE_ACCOUNT,
-          asLegacyTransaction: false, // Use versioned transaction for better optimization
-          computeUnitPriceMicroLamports: 5000,
-          priorityFeeLamports: SWAP_FEES.PRIORITY_FEE_LAMPORTS,
-          useTokenLedger: false, // Disable token ledger to reduce size
-          destinationTokenAccount: undefined, // Let Jupiter handle this
-          dynamicComputeUnitLimit: true
-        };
+      // Try multiple transaction configurations
+      const transactionConfigs = [
+        {
+          name: 'Versioned with high priority',
+          config: {
+            userPublicKey: signer.publicKey?.toString() || '',
+            quoteResponse: quoteResponse.data,
+            feeAccount: SWAP_FEES.FEE_ACCOUNT,
+            asLegacyTransaction: false,
+            computeUnitPriceMicroLamports: 10000, // Increased priority
+            priorityFeeLamports: 10000, // Increased priority fee
+            useTokenLedger: false,
+            destinationTokenAccount: undefined,
+            dynamicComputeUnitLimit: true
+          }
+        },
+        {
+          name: 'Legacy with high priority',
+          config: {
+            userPublicKey: signer.publicKey?.toString() || '',
+            quoteResponse: quoteResponse.data,
+            feeAccount: SWAP_FEES.FEE_ACCOUNT,
+            asLegacyTransaction: true,
+            computeUnitPriceMicroLamports: 10000,
+            priorityFeeLamports: 10000,
+            useTokenLedger: false,
+            destinationTokenAccount: undefined,
+            dynamicComputeUnitLimit: true
+          }
+        },
+        {
+          name: 'Versioned with standard priority',
+          config: {
+            userPublicKey: signer.publicKey?.toString() || '',
+            quoteResponse: quoteResponse.data,
+            feeAccount: SWAP_FEES.FEE_ACCOUNT,
+            asLegacyTransaction: false,
+            computeUnitPriceMicroLamports: 5000,
+            priorityFeeLamports: 5000,
+            useTokenLedger: false,
+            destinationTokenAccount: undefined,
+            dynamicComputeUnitLimit: true
+          }
+        },
+        {
+          name: 'Legacy with standard priority',
+          config: {
+            userPublicKey: signer.publicKey?.toString() || '',
+            quoteResponse: quoteResponse.data,
+            feeAccount: SWAP_FEES.FEE_ACCOUNT,
+            asLegacyTransaction: true,
+            computeUnitPriceMicroLamports: 5000,
+            priorityFeeLamports: 5000,
+            useTokenLedger: false,
+            destinationTokenAccount: undefined,
+            dynamicComputeUnitLimit: true
+          }
+        }
+      ];
 
-        swapResponse = await axios.post(
-          'https://quote-api.jup.ag/v6/swap',
-          swapRequestData
-        );
-        
-        console.log('✅ Versioned swap transaction created');
-      } catch (versionedError) {
-        console.log('⚠️ Versioned transaction failed, trying legacy...');
-        
-        // Fallback to legacy transaction
-        const swapRequestData = {
-          userPublicKey: signer.publicKey?.toString() || '',
-          quoteResponse: quoteResponse.data,
-          feeAccount: SWAP_FEES.FEE_ACCOUNT,
-          asLegacyTransaction: true, // Use legacy transaction as fallback
-          computeUnitPriceMicroLamports: 5000,
-          priorityFeeLamports: SWAP_FEES.PRIORITY_FEE_LAMPORTS,
-          useTokenLedger: false,
-          destinationTokenAccount: undefined,
-          dynamicComputeUnitLimit: true
-        };
-
-        swapResponse = await axios.post(
-          'https://quote-api.jup.ag/v6/swap',
-          swapRequestData
-        );
-        
-        useLegacyTransaction = true;
-        console.log('✅ Legacy swap transaction created');
+      // Try each configuration until one works
+      for (const config of transactionConfigs) {
+        try {
+          console.log(`🔄 Trying ${config.name}...`);
+          
+          swapResponse = await axios.post(
+            'https://quote-api.jup.ag/v6/swap',
+            config.config
+          );
+          
+          if (swapResponse.data?.swapTransaction) {
+            useLegacyTransaction = config.config.asLegacyTransaction;
+            console.log(`✅ ${config.name} successful`);
+            break;
+          }
+        } catch (error) {
+          console.log(`❌ ${config.name} failed:`, error);
+          simulationError = error;
+          continue;
+        }
       }
 
-      if (!swapResponse.data?.swapTransaction) {
-        throw new Error('Failed to create swap transaction');
+      if (!swapResponse?.data?.swapTransaction) {
+        throw new Error(`Failed to create swap transaction after trying all configurations. Last error: ${simulationError?.message || 'Unknown error'}`);
       }
 
       // Step 3: Deserialize and sign transaction
@@ -200,7 +238,7 @@ export function useSwap() {
             if ('InstructionError' in error) {
               const [index, instructionError] = error.InstructionError as [number, any];
               if (instructionError === 'ProgramFailedToComplete') {
-                throw new Error(`Swap failed: Program execution failed. This usually means insufficient SOL for fees or the swap amount is too small. Try with at least $5-10 USD worth of SOL and ensure you have enough SOL for transaction fees.`);
+                throw new Error(`Swap failed: Program execution failed. This usually means insufficient SOL for fees or the swap amount is too small. Try with at least $10-20 USD worth of SOL and ensure you have enough SOL for transaction fees. Current amount: $${usdAmount.toFixed(2)} USD (${solAmount.toFixed(4)} SOL).`);
               }
             }
           }
@@ -211,6 +249,12 @@ export function useSwap() {
         console.log('✅ Transaction simulation successful');
       } catch (simError: any) {
         console.error('❌ Transaction simulation failed:', simError);
+        
+        // If simulation fails, try to provide helpful error message
+        if (simError.message.includes('ProgramFailedToComplete')) {
+          throw new Error(`Transaction will fail: Program execution error. Try with a larger amount (at least $10-20 USD) or ensure you have sufficient SOL balance for fees. Current amount: $${usdAmount.toFixed(2)} USD.`);
+        }
+        
         throw new Error(`Transaction will fail: ${simError.message || 'Unknown error'}`);
       }
 
