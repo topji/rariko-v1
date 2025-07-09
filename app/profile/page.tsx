@@ -4,7 +4,9 @@ import React, { useState } from 'react'
 import { Navigation } from '../../components/Navigation'
 import { Card } from '../../components/ui/Card'
 import { Button } from '../../components/ui/Button'
+import { Input } from '../../components/ui/Input'
 import { useDynamicWallet } from '../../hooks/useDynamicWallet'
+import { useSolTransfer } from '../../hooks/useSolTransfer'
 import { useRouter } from 'next/navigation'
 import { useDynamicContext, useEmbeddedReveal, useOnramp } from "@dynamic-labs/sdk-react-core"
 import { OnrampProviders } from "@dynamic-labs/sdk-api"
@@ -21,6 +23,8 @@ import {
   LogOut,
   Key,
   Download,
+  Send,
+  Loader2,
 } from 'lucide-react'
 import { PageHeader } from '../../components/PageHeader'
 
@@ -52,14 +56,23 @@ export default function ProfilePage() {
   const router = useRouter()
   const [isAddressCopied, setIsAddressCopied] = useState(false)
   const [showLoadModal, setShowLoadModal] = useState(false)
+  const [showSendModal, setShowSendModal] = useState(false)
   const [isInviteCopied, setIsInviteCopied] = useState(false)
   const [showMenu, setShowMenu] = useState(false)
+  const [sendAmount, setSendAmount] = useState('')
+  const [sendRecipient, setSendRecipient] = useState('')
+  const [lastTxId, setLastTxId] = useState('')
+  const [lastAmount, setLastAmount] = useState('')
+  const [showSuccessModal, setShowSuccessModal] = useState(false)
 
   // Avatar mock (replace with real avatar if available)
   const avatarUrl = 'https://api.dicebear.com/7.x/adventurer/svg?seed=' + (displayName || 'user')
 
   // SOL balance
   const solBalance = tokenBalances?.find(token => token.symbol === 'SOL')?.balance || 0
+  
+  // SOL transfer hook
+  const { sendSol, isLoading: isTransferLoading, isConfirming } = useSolTransfer()
 
   const handleCopyAddress = async () => {
     if (walletAddress) {
@@ -100,6 +113,43 @@ export default function ProfilePage() {
   const handleLogout = () => {
     logout()
     setShowMenu(false)
+  }
+
+  const handleSendSol = async () => {
+    if (!sendRecipient || !sendAmount) {
+      alert('Please enter recipient and amount')
+      return
+    }
+
+    const amount = parseFloat(sendAmount)
+    if (isNaN(amount) || amount <= 0) {
+      alert('Please enter a valid amount')
+      return
+    }
+
+    if (amount > solBalance) {
+      alert('Insufficient SOL balance')
+      return
+    }
+
+    // Basic Solana address validation
+    if (sendRecipient.length !== 44 || !sendRecipient.match(/^[1-9A-HJ-NP-Za-km-z]+$/)) {
+      alert('Please enter a valid Solana wallet address')
+      return
+    }
+
+    try {
+      const result = await sendSol(sendRecipient, amount)
+      setLastTxId(result.txId)
+      setLastAmount(sendAmount)
+      setShowSuccessModal(true)
+      setShowSendModal(false)
+      setSendAmount('')
+      setSendRecipient('')
+    } catch (error: any) {
+      console.error('Send failed:', error)
+      alert(`Transaction failed: ${error.message}`)
+    }
   }
 
   React.useEffect(() => {
@@ -194,17 +244,35 @@ export default function ProfilePage() {
         <Card className="bg-gray-800 border border-gray-700/60 backdrop-blur-xl rounded-2xl p-6 flex flex-col gap-4">
           <div className="flex items-center justify-between mb-2">
             <span className="text-gray-400 text-sm">SOL Balance</span>
-            <Button
-              variant="outline"
-              size="sm"
-              className="text-usdt border-usdt hover:bg-usdt/10"
-              onClick={() => setShowLoadModal(true)}
-            >
-              Load
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-usdt border-usdt hover:bg-usdt/10"
+                onClick={() => setShowSendModal(true)}
+              >
+                <Send className="w-4 h-4 mr-1" /> Send
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-usdt border-usdt hover:bg-usdt/10"
+                onClick={() => setShowLoadModal(true)}
+              >
+                Load
+              </Button>
+            </div>
           </div>
           <div className="text-3xl font-bold text-white mb-2">{isLoadingTokens ? '...' : solBalance.toFixed(4)} <span className="text-base text-gray-400 font-normal">SOL</span></div>
           <div className="flex gap-3">
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex-1 text-usdt border-usdt hover:bg-usdt/10"
+              onClick={() => setShowSendModal(true)}
+            >
+              <Send className="w-4 h-4 mr-1" /> Send SOL
+            </Button>
             <Button
               variant="outline"
               size="sm"
@@ -297,6 +365,197 @@ export default function ProfilePage() {
             >
               <Globe className="w-4 h-4 mr-2" /> Buy with Fiat
             </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Send Modal */}
+      {showSendModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
+          <div className="bg-gray-900 rounded-2xl p-6 w-full max-w-md relative">
+            <button
+              className="absolute top-3 right-3 text-gray-400 hover:text-white"
+              onClick={() => {
+                setShowSendModal(false)
+                setSendAmount('')
+                setSendRecipient('')
+              }}
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <h2 className="text-lg font-bold mb-4 text-white">Send SOL</h2>
+            
+            <div className="space-y-4">
+              {/* Recipient Input */}
+              <div>
+                <label className="block text-sm font-medium text-gray-400 mb-2">
+                  Recipient Address
+                </label>
+                <Input
+                  type="text"
+                  placeholder="Enter Solana wallet address"
+                  value={sendRecipient}
+                  onChange={(e) => setSendRecipient(e.target.value)}
+                  className={`bg-gray-800 border-gray-700 text-white ${
+                    sendRecipient && sendRecipient.length === 44 && sendRecipient.match(/^[1-9A-HJ-NP-Za-km-z]+$/)
+                      ? 'border-green-500 focus:ring-green-500'
+                      : sendRecipient && (sendRecipient.length !== 44 || !sendRecipient.match(/^[1-9A-HJ-NP-Za-km-z]+$/))
+                      ? 'border-red-500 focus:ring-red-500'
+                      : ''
+                  }`}
+                />
+                <p className={`text-xs mt-1 ${
+                  sendRecipient && sendRecipient.length === 44 && sendRecipient.match(/^[1-9A-HJ-NP-Za-km-z]+$/)
+                    ? 'text-green-400'
+                    : sendRecipient && (sendRecipient.length !== 44 || !sendRecipient.match(/^[1-9A-HJ-NP-Za-km-z]+$/))
+                    ? 'text-red-400'
+                    : 'text-gray-500'
+                }`}>
+                  {sendRecipient && sendRecipient.length === 44 && sendRecipient.match(/^[1-9A-HJ-NP-Za-km-z]+$/)
+                    ? '✓ Valid Solana address'
+                    : sendRecipient && (sendRecipient.length !== 44 || !sendRecipient.match(/^[1-9A-HJ-NP-Za-km-z]+$/))
+                    ? '✗ Invalid address format'
+                    : 'Enter a valid Solana wallet address (44 characters)'}
+                </p>
+              </div>
+              
+              {/* Amount Input */}
+              <div>
+                <label className="block text-sm font-medium text-gray-400 mb-2">
+                  Amount (SOL)
+                </label>
+                <Input
+                  type="number"
+                  placeholder="0.00"
+                  value={sendAmount}
+                  onChange={(e) => setSendAmount(e.target.value)}
+                  className="bg-gray-800 border-gray-700 text-white"
+                />
+                <p className="text-xs text-gray-500 mt-1">Available: {solBalance.toFixed(4)} SOL</p>
+              </div>
+              
+              {/* Quick Amount Buttons */}
+              <div>
+                <label className="block text-sm font-medium text-gray-400 mb-2">
+                  Quick Amounts
+                </label>
+                <div className="grid grid-cols-3 gap-2">
+                  {[0.1, 0.5, 1, 2, 5, 10].map((amount) => (
+                    <Button
+                      key={amount}
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setSendAmount(amount.toString())}
+                      className="h-8 text-xs"
+                      disabled={amount > solBalance}
+                    >
+                      {amount} SOL
+                    </Button>
+                  ))}
+                </div>
+              </div>
+              
+              {/* Transaction Info */}
+              <div className="bg-gray-800 rounded-lg p-3 space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-400">Network Fee</span>
+                  <span className="text-white">~0.000005 SOL</span>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-400">Your Balance</span>
+                  <span className="text-white">{solBalance.toFixed(4)} SOL</span>
+                </div>
+              </div>
+              
+              {/* Action Buttons */}
+              <div className="flex gap-3">
+                <Button
+                  onClick={() => {
+                    setShowSendModal(false)
+                    setSendAmount('')
+                    setSendRecipient('')
+                  }}
+                  variant="outline"
+                  className="flex-1"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleSendSol}
+                  disabled={
+                    !sendRecipient || 
+                    !sendAmount || 
+                    parseFloat(sendAmount) <= 0 || 
+                    parseFloat(sendAmount) > solBalance || 
+                    isTransferLoading ||
+                    sendRecipient.length !== 44 || 
+                    !sendRecipient.match(/^[1-9A-HJ-NP-Za-km-z]+$/)
+                  }
+                  className="flex-1 bg-usdt hover:bg-primary-600"
+                >
+                  {isTransferLoading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                      {isConfirming ? 'Confirming...' : 'Processing...'}
+                    </>
+                  ) : (
+                    <>
+                      <Send className="w-4 h-4 mr-2" />
+                      Send SOL
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Success Modal */}
+      {showSuccessModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
+          <div className="bg-gray-900 rounded-2xl p-6 w-full max-w-md relative">
+            <div className="text-center space-y-4">
+              <div className="w-16 h-16 bg-green-900 rounded-full flex items-center justify-center mx-auto">
+                <Check className="w-8 h-8 text-green-400" />
+              </div>
+              
+              <div>
+                <h2 className="text-xl font-bold text-white mb-2">Transaction Successful!</h2>
+                <p className="text-gray-300">Your SOL has been sent successfully.</p>
+              </div>
+              
+              <div className="bg-gray-800 rounded-lg p-3 space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-400">Transaction ID</span>
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-white text-xs">{lastTxId.slice(0, 8)}...{lastTxId.slice(-8)}</span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        navigator.clipboard.writeText(lastTxId)
+                        alert('Transaction ID copied!')
+                      }}
+                      className="text-gray-400 hover:text-usdt"
+                    >
+                      <Copy className="w-3 h-3" />
+                    </Button>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-400">Amount Sent</span>
+                  <span className="text-white">{lastAmount} SOL</span>
+                </div>
+              </div>
+              
+              <Button
+                onClick={() => setShowSuccessModal(false)}
+                className="w-full bg-usdt hover:bg-primary-600"
+              >
+                Done
+              </Button>
+            </div>
           </div>
         </div>
       )}

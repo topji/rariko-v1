@@ -197,7 +197,7 @@ export function useSwap() {
       }
 
       if (!swapResponse?.data?.swapTransaction) {
-        throw new Error(`Failed to create swap transaction after trying all configurations. Last error: ${simulationError?.message || 'Unknown error'}`);
+        throw new Error(`Failed to create swap transaction after trying all configurations. Last error: ${(simulationError as any)?.message || 'Unknown error'}`);
       }
 
       // Step 3: Deserialize and sign transaction
