@@ -2,20 +2,32 @@
 import { DynamicWidget } from "@dynamic-labs/sdk-react-core";
 import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { motion } from 'framer-motion'
 import { Logo } from './Logo';
+import DisclaimerModal from './DisclaimerModal';
 
 export default function Onboarding() {
   const { primaryWallet } = useDynamicContext();
   const router = useRouter();
+  const [showDisclaimer, setShowDisclaimer] = useState(false);
 
-  // Redirect when wallet connects
+  // Check if disclaimer has been accepted
   useEffect(() => {
     if (primaryWallet?.address) {
-      router.push('/');
+      const disclaimerAccepted = localStorage.getItem('rariko-disclaimer-accepted');
+      if (disclaimerAccepted === 'true') {
+        router.push('/');
+      } else {
+        setShowDisclaimer(true);
+      }
     }
   }, [primaryWallet?.address, router]);
+
+  const handleDisclaimerAccept = () => {
+    setShowDisclaimer(false);
+    router.push('/');
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black flex items-center justify-center p-4">
@@ -107,6 +119,12 @@ export default function Onboarding() {
           </motion.div>
         </motion.div>
       </div>
+
+      {/* Disclaimer Modal */}
+      <DisclaimerModal
+        isOpen={showDisclaimer}
+        onAccept={handleDisclaimerAccept}
+      />
     </div>
   );
 } 

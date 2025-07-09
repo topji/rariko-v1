@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Navigation } from '../../components/Navigation'
 import { Card } from '../../components/ui/Card'
 import { Button } from '../../components/ui/Button'
@@ -27,6 +27,7 @@ import {
   Loader2,
 } from 'lucide-react'
 import { PageHeader } from '../../components/PageHeader'
+import QRCode from 'qrcode'
 
 const mockReferData = {
   inviteCode: 'GVV5KNL',
@@ -66,6 +67,7 @@ export default function ProfilePage() {
   const [showSuccessModal, setShowSuccessModal] = useState(false)
   const [loadModalStep, setLoadModalStep] = useState<'options' | 'fiat' | 'crypto-disclaimer' | 'crypto-qr'>('options')
   const [hasAcceptedDisclaimer, setHasAcceptedDisclaimer] = useState(false)
+  const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string>('')
 
   // Avatar mock (replace with real avatar if available)
   const avatarUrl = 'https://api.dicebear.com/7.x/adventurer/svg?seed=' + (displayName || 'user')
@@ -117,6 +119,30 @@ export default function ProfilePage() {
     setShowMenu(false)
   }
 
+  // Generate QR code for wallet address
+  const generateQRCode = async (address: string) => {
+    try {
+      const qrDataUrl = await QRCode.toDataURL(address, {
+        width: 128,
+        margin: 2,
+        color: {
+          dark: '#000000',
+          light: '#FFFFFF'
+        }
+      })
+      setQrCodeDataUrl(qrDataUrl)
+    } catch (error) {
+      console.error('Error generating QR code:', error)
+    }
+  }
+
+  // Generate QR code when crypto QR step is reached
+  useEffect(() => {
+    if (loadModalStep === 'crypto-qr' && walletAddress) {
+      generateQRCode(walletAddress)
+    }
+  }, [loadModalStep, walletAddress])
+
   const handleSendSol = async () => {
     if (!sendRecipient || !sendAmount) {
       alert('Please enter recipient and amount')
@@ -163,7 +189,7 @@ export default function ProfilePage() {
   if (!isConnected) return null
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white pb-20 relative overflow-hidden">
+    <div className="min-h-screen bg-gray-900 text-white relative overflow-hidden">
       {/* Grid overlay */}
       <div className="absolute inset-0 pointer-events-none z-0" aria-hidden>
         <svg width="100%" height="100%" className="opacity-5">
@@ -241,7 +267,7 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      <div className="px-4 space-y-6 relative z-10 pb-24">
+      <div className="px-4 space-y-6 relative z-10 pb-32">
         {/* SOL Balance Card */}
         <Card className="bg-gray-800 border border-gray-700/60 backdrop-blur-xl rounded-2xl p-6 flex flex-col gap-4">
           <div className="flex items-center justify-between mb-2">
@@ -427,10 +453,17 @@ export default function ProfilePage() {
                 <h2 className="text-lg font-bold mb-4 text-white">Receive SOL</h2>
                 <div className="mb-6 text-center">
                   <div className="bg-white p-4 rounded-lg mb-4 inline-block">
-                    {/* QR Code placeholder - you can replace with actual QR code */}
-                    <div className="w-32 h-32 bg-gray-200 rounded flex items-center justify-center">
-                      <span className="text-gray-500 text-xs">QR Code</span>
-                    </div>
+                    {qrCodeDataUrl ? (
+                      <img 
+                        src={qrCodeDataUrl} 
+                        alt="QR Code" 
+                        className="w-32 h-32 rounded"
+                      />
+                    ) : (
+                      <div className="w-32 h-32 bg-gray-200 rounded flex items-center justify-center">
+                        <Loader2 className="w-6 h-6 animate-spin text-gray-500" />
+                      </div>
+                    )}
                   </div>
                   <div className="mb-4">
                     <div className="text-gray-400 text-sm mb-2">Wallet Address</div>
