@@ -4,91 +4,87 @@ import React from 'react'
 import { Navigation } from '../../components/Navigation'
 import { Card } from '../../components/ui/Card'
 import { Button } from '../../components/ui/Button'
-import { TrendingUp, TrendingDown, DollarSign, Percent, PieChart } from 'lucide-react'
+import { TrendingUp, TrendingDown, DollarSign, Percent, PieChart, RefreshCw, Loader2 } from 'lucide-react'
 import { PageHeader } from '../../components/PageHeader'
-
-// Mock portfolio data
-const mockPortfolio = {
-  totalValue: 15420.67,
-  totalChange: 1245.32,
-  totalChangePercent: 8.78,
-  totalInvested: 14175.35,
-  holdings: [
-    {
-      symbol: 'AAPL',
-      name: 'Apple Inc.',
-      shares: 25,
-      avgPrice: 165.20,
-      currentPrice: 175.43,
-      totalValue: 4385.75,
-      totalChange: 255.75,
-      changePercent: 6.18,
-    },
-    {
-      symbol: 'GOOGL',
-      name: 'Alphabet Inc.',
-      shares: 15,
-      avgPrice: 138.90,
-      currentPrice: 142.56,
-      totalValue: 2138.40,
-      totalChange: 54.90,
-      changePercent: 2.64,
-    },
-    {
-      symbol: 'MSFT',
-      name: 'Microsoft Corporation',
-      shares: 8,
-      avgPrice: 365.20,
-      currentPrice: 378.85,
-      totalValue: 3030.80,
-      totalChange: 109.20,
-      changePercent: 3.74,
-    },
-    {
-      symbol: 'TSLA',
-      name: 'Tesla, Inc.',
-      shares: 12,
-      avgPrice: 260.15,
-      currentPrice: 248.42,
-      totalValue: 2981.04,
-      totalChange: -140.76,
-      changePercent: -4.51,
-    },
-    {
-      symbol: 'NVDA',
-      name: 'NVIDIA Corporation',
-      shares: 6,
-      avgPrice: 470.25,
-      currentPrice: 485.09,
-      totalValue: 2910.54,
-      totalChange: 89.04,
-      changePercent: 3.16,
-    },
-  ]
-}
+import { usePortfolio } from '../../hooks/usePortfolio'
+import { useRouter } from 'next/navigation'
 
 export default function PortfolioPage() {
+  const { 
+    totalValue, 
+    totalChange, 
+    totalChangePercent, 
+    totalInvested, 
+    holdings, 
+    isLoading, 
+    error,
+    refreshPortfolio 
+  } = usePortfolio()
+  
+  const router = useRouter()
+
+  const handleBuyMore = (contractAddress: string) => {
+    // Navigate to stocks page with the token pre-selected
+    router.push('/stocks')
+  }
+
+  const handleSell = (contractAddress: string) => {
+    // Navigate to swap page with sell mode
+    router.push('/swap')
+  }
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-900 text-white pb-20">
+        <PageHeader showProfile={true} />
+        <div className="px-4 py-6 flex items-center justify-center">
+          <div className="flex items-center gap-2">
+            <Loader2 className="w-6 h-6 animate-spin text-usdt" />
+            <span className="text-gray-400">Loading portfolio...</span>
+          </div>
+        </div>
+        <Navigation />
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-900 text-white pb-20">
+        <PageHeader showProfile={true} />
+        <div className="px-4 py-6 text-center">
+          <p className="text-red-400 mb-4">{error}</p>
+          <Button onClick={refreshPortfolio} className="bg-usdt hover:bg-primary-600">
+            <RefreshCw className="w-4 h-4 mr-2" />
+            Retry
+          </Button>
+        </div>
+        <Navigation />
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-gray-900 text-white pb-20">
       {/* Header */}
-              <PageHeader showProfile={true} />
+      <PageHeader showProfile={true} />
 
       <div className="px-4 py-6 space-y-6">
         {/* Portfolio Overview */}
         <Card variant="elevated" className="bg-gradient-to-br from-usdt to-primary-600 text-white">
           <div className="p-6 text-center">
-            <h2 className="text-2xl font-bold mb-2">${mockPortfolio.totalValue.toLocaleString()}</h2>
+            <h2 className="text-2xl font-bold mb-2">${totalValue.toLocaleString()}</h2>
             <div className={`flex items-center justify-center gap-1 text-sm mb-2 ${
-              mockPortfolio.totalChange >= 0 ? 'text-green-300' : 'text-red-300'
+              totalChange >= 0 ? 'text-green-300' : 'text-red-300'
             }`}>
-              {mockPortfolio.totalChange >= 0 ? (
+              {totalChange >= 0 ? (
                 <TrendingUp className="w-4 h-4" />
               ) : (
                 <TrendingDown className="w-4 h-4" />
               )}
-              {mockPortfolio.totalChange >= 0 ? '+' : ''}${mockPortfolio.totalChange.toFixed(2)} ({mockPortfolio.totalChangePercent >= 0 ? '+' : ''}{mockPortfolio.totalChangePercent.toFixed(2)}%)
+              {totalChange >= 0 ? '+' : ''}${totalChange.toFixed(2)} ({totalChangePercent >= 0 ? '+' : ''}{totalChangePercent.toFixed(2)}%)
             </div>
-            <p className="text-blue-200 text-sm">Total Invested: ${mockPortfolio.totalInvested.toLocaleString()}</p>
+            <p className="text-blue-200 text-sm">Total Invested: ${totalInvested.toLocaleString()}</p>
           </div>
         </Card>
 
@@ -96,72 +92,99 @@ export default function PortfolioPage() {
         <div className="grid grid-cols-2 gap-3">
           <Card className="p-4 text-center">
             <DollarSign className="w-6 h-6 mx-auto mb-2 text-usdt" />
-            <div className="text-lg font-semibold text-white">{mockPortfolio.holdings.length}</div>
-            <div className="text-gray-400 text-sm">Stocks</div>
+            <div className="text-lg font-semibold text-white">{holdings.length}</div>
+            <div className="text-gray-400 text-sm">Tokens</div>
           </Card>
           
           <Card className="p-4 text-center">
             <Percent className="w-6 h-6 mx-auto mb-2 text-green-400" />
-            <div className="text-lg font-semibold text-white">{mockPortfolio.totalChangePercent.toFixed(2)}%</div>
+            <div className="text-lg font-semibold text-white">{totalChangePercent.toFixed(2)}%</div>
             <div className="text-gray-400 text-sm">Total Return</div>
           </Card>
         </div>
 
         {/* Holdings */}
         <div>
-          <h3 className="text-lg font-semibold text-white mb-4">Holdings</h3>
-          <div className="space-y-3">
-            {mockPortfolio.holdings.map((holding) => (
-              <Card key={holding.symbol} className="p-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-gray-700 rounded-xl flex items-center justify-center">
-                        <span className="text-white font-bold text-sm">{holding.symbol[0]}</span>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-white">Holdings</h3>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={refreshPortfolio}
+              className="text-gray-400 hover:text-usdt"
+            >
+              <RefreshCw className="w-4 h-4" />
+            </Button>
+          </div>
+          
+          {holdings.length === 0 ? (
+            <Card className="p-8 text-center">
+              <PieChart className="w-12 h-12 mx-auto mb-4 text-gray-500" />
+              <h4 className="text-lg font-semibold text-white mb-2">No Holdings</h4>
+              <p className="text-gray-400 mb-4">You don't have any tokens in your portfolio yet.</p>
+              <Button 
+                onClick={() => router.push('/stocks')}
+                className="bg-usdt hover:bg-primary-600"
+              >
+                Buy Your First Token
+              </Button>
+            </Card>
+          ) : (
+            <div className="space-y-3">
+              {holdings.map((holding) => (
+                <Card key={holding.contractAddress} className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-gray-700 rounded-xl flex items-center justify-center">
+                          <span className="text-white font-bold text-sm">{holding.symbol[0]}</span>
+                        </div>
+                        <div>
+                          <h4 className="font-semibold text-white">{holding.symbol}</h4>
+                          <p className="text-gray-400 text-sm">{holding.name}</p>
+                          <p className="text-gray-400 text-xs">{holding.balanceFormatted} {holding.symbol}</p>
+                        </div>
                       </div>
-                      <div>
-                        <h4 className="font-semibold text-white">{holding.symbol}</h4>
-                        <p className="text-gray-400 text-sm">{holding.name}</p>
-                        <p className="text-gray-400 text-xs">{holding.shares} shares</p>
+                    </div>
+                    
+                    <div className="text-right">
+                      <div className="font-semibold text-white">${holding.totalValue.toFixed(2)}</div>
+                      <div className={`flex items-center gap-1 text-sm ${
+                        (holding.change24h || 0) >= 0 ? 'text-green-400' : 'text-red-400'
+                      }`}>
+                        {(holding.change24h || 0) >= 0 ? (
+                          <TrendingUp className="w-3 h-3" />
+                        ) : (
+                          <TrendingDown className="w-3 h-3" />
+                        )}
+                        {(holding.change24h || 0) >= 0 ? '+' : ''}{(holding.change24h || 0).toFixed(2)}%
+                      </div>
+                      <div className="text-gray-400 text-xs">
+                        ${holding.priceUsd.toFixed(4)} per {holding.symbol}
                       </div>
                     </div>
                   </div>
                   
-                  <div className="text-right">
-                    <div className="font-semibold text-white">${holding.totalValue.toFixed(2)}</div>
-                    <div className={`flex items-center gap-1 text-sm ${
-                      holding.totalChange >= 0 ? 'text-green-400' : 'text-red-400'
-                    }`}>
-                      {holding.totalChange >= 0 ? (
-                        <TrendingUp className="w-3 h-3" />
-                      ) : (
-                        <TrendingDown className="w-3 h-3" />
-                      )}
-                      {holding.totalChange >= 0 ? '+' : ''}${holding.totalChange.toFixed(2)} ({holding.changePercent >= 0 ? '+' : ''}{holding.changePercent.toFixed(2)}%)
-                    </div>
-                    <div className="text-gray-400 text-xs">
-                      Avg: ${holding.avgPrice} | Current: ${holding.currentPrice}
-                    </div>
+                  <div className="mt-3 flex gap-2">
+                    <Button
+                      variant="outline"
+                      className="flex-1 text-sm"
+                      onClick={() => handleBuyMore(holding.contractAddress)}
+                    >
+                      Buy More
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="flex-1 text-sm"
+                      onClick={() => handleSell(holding.contractAddress)}
+                    >
+                      Sell
+                    </Button>
                   </div>
-                </div>
-                
-                <div className="mt-3 flex gap-2">
-                  <Button
-                    variant="outline"
-                    className="flex-1 text-sm"
-                  >
-                    Buy More
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="flex-1 text-sm"
-                  >
-                    Sell
-                  </Button>
-                </div>
-              </Card>
-            ))}
-          </div>
+                </Card>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
