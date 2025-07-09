@@ -18,7 +18,7 @@ import { Button } from '../../components/ui/Button'
 import { Input } from '../../components/ui/Input'
 import { Card, CardContent, CardHeader } from '../../components/ui/Card'
 import { useDynamicWallet } from '../../hooks/useDynamicWallet'
-import { useSwap } from '../../hooks/useSwap'
+import { useSwapV2 } from '../../hooks/useSwapV2'
 import { formatUSDT, formatCurrency } from '../../lib/utils'
 import { toast } from 'react-hot-toast'
 import { useRouter } from 'next/navigation'
@@ -47,7 +47,7 @@ export default function SwapPage() {
   const [txId, setTxId] = useState<string | null>(null)
   const [showTransactionStatus, setShowTransactionStatus] = useState(false)
   const { walletAddress } = useDynamicWallet()
-  const { buyToken, sellToken, isLoading, isConfirming } = useSwap()
+  const { buyToken, sellToken, isLoading, isConfirming } = useSwapV2()
   const router = useRouter()
 
   // Mock tokens data

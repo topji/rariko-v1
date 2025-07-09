@@ -7,7 +7,7 @@ import { Button } from '../../components/ui/Button'
 import { Input } from '../../components/ui/Input'
 import { Search, TrendingUp, TrendingDown, DollarSign, Volume2, RefreshCw, Loader2 } from 'lucide-react'
 import { PageHeader } from '../../components/PageHeader'
-import { useSwap } from '../../hooks/useSwap'
+import { useSwapV2 } from '../../hooks/useSwapV2'
 import { useDynamicWallet } from '../../hooks/useDynamicWallet'
 import { NATIVE_MINT } from '@solana/spl-token'
 
@@ -36,7 +36,7 @@ export default function StocksPage() {
   const [isGettingQuote, setIsGettingQuote] = useState(false)
   const [solPrice, setSolPrice] = useState<number>(0)
   
-  const { buyToken, getQuote, isLoading: isSwapLoading } = useSwap()
+  const { buyToken, getQuote, isLoading: isSwapLoading } = useSwapV2()
   const { isConnected, tokenBalances } = useDynamicWallet()
   
   // SOL balance
@@ -158,14 +158,7 @@ export default function StocksPage() {
     
     const usdAmount = parseFloat(buyAmountUSD)
     
-    // Validate minimum amount (increased to avoid "Program failed to complete" error)
-    const minSolAmount = 0.05 // 0.05 SOL minimum
-    const minUsdAmount = minSolAmount * solPrice
-    if (usdAmount < minUsdAmount) {
-      alert(`Minimum purchase amount is $${minUsdAmount.toFixed(2)} (${minSolAmount} SOL). Try with at least $${minUsdAmount.toFixed(2)} USD.`)
-      return
-    }
-    
+    // Removed minimum amount check
     // Validate SOL balance (including 1% fee and increased buffer)
     const solAmount = usdAmount / solPrice
     const feeAmount = solAmount * 0.01 // 1% fee
