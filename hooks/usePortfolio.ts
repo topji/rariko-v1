@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useDynamicWallet } from './useDynamicWallet'
 import { useDynamicContext } from '@dynamic-labs/sdk-react-core'
 import axios from 'axios'
@@ -60,7 +60,7 @@ export function usePortfolio() {
   const [isProcessing, setIsProcessing] = useState(false)
 
   // Fetch token price from Jupiter
-  const fetchTokenPrice = async (contractAddress: string): Promise<number> => {
+  const fetchTokenPrice = useCallback(async (contractAddress: string): Promise<number> => {
     try {
       const response = await axios.get(`https://lite-api.jup.ag/price/v3?ids=${contractAddress}`)
       const data = response.data
@@ -74,10 +74,10 @@ export function usePortfolio() {
       console.error(`Error fetching price for ${contractAddress}:`, error)
       return 0
     }
-  }
+  }, [])
 
   // Fetch token metadata from DexScreener
-  const fetchTokenMetadata = async (contractAddress: string) => {
+  const fetchTokenMetadata = useCallback(async (contractAddress: string) => {
     try {
       const response = await axios.get(`https://api.dexscreener.com/tokens/v1/solana/${contractAddress}`)
       const data = response.data
@@ -104,10 +104,10 @@ export function usePortfolio() {
         change24h: 0
       }
     }
-  }
+  }, [])
 
   // Process token balances and fetch additional data
-  const processTokenBalances = async () => {
+  const processTokenBalances = useCallback(async () => {
     if (!isConnected || !walletAddress || isProcessing) {
       if (!isConnected || !walletAddress) {
         setPortfolioData(prev => ({ ...prev, isLoading: false, holdings: [] }))
@@ -190,19 +190,19 @@ export function usePortfolio() {
     } finally {
       setIsProcessing(false)
     }
-  }
+  }, [isConnected, walletAddress, isProcessing, fetchTokenPrice, fetchTokenMetadata])
 
   // Refresh portfolio data
-  const refreshPortfolio = () => {
+  const refreshPortfolio = useCallback(() => {
     processTokenBalances()
-  }
+  }, [processTokenBalances])
 
   // Process data when wallet changes
   useEffect(() => {
     if (!isLoadingTokens && isConnected && walletAddress) {
       processTokenBalances()
     }
-  }, [isLoadingTokens, isConnected, walletAddress])
+  }, [isLoadingTokens, isConnected, walletAddress, processTokenBalances])
 
   return {
     ...portfolioData,
