@@ -241,6 +241,7 @@ export default function PortfolioPage() {
           usdAmount={successData.usdAmount}
           feeInUSD={successData.feeInUSD}
           tokenPrice={successData.tokenPrice}
+          transactionType="sell"
         />
       )}
     </div>

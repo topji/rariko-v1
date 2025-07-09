@@ -64,6 +64,8 @@ export default function ProfilePage() {
   const [lastTxId, setLastTxId] = useState('')
   const [lastAmount, setLastAmount] = useState('')
   const [showSuccessModal, setShowSuccessModal] = useState(false)
+  const [loadModalStep, setLoadModalStep] = useState<'options' | 'fiat' | 'crypto-disclaimer' | 'crypto-qr'>('options')
+  const [hasAcceptedDisclaimer, setHasAcceptedDisclaimer] = useState(false)
 
   // Avatar mock (replace with real avatar if available)
   const avatarUrl = 'https://api.dicebear.com/7.x/adventurer/svg?seed=' + (displayName || 'user')
@@ -239,7 +241,7 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      <div className="px-4 space-y-6 relative z-10">
+      <div className="px-4 space-y-6 relative z-10 pb-24">
         {/* SOL Balance Card */}
         <Card className="bg-gray-800 border border-gray-700/60 backdrop-blur-xl rounded-2xl p-6 flex flex-col gap-4">
           <div className="flex items-center justify-between mb-2">
@@ -316,50 +318,147 @@ export default function ProfilePage() {
         </Card>
       </div>
 
-      {/* Load Modal */}
+      <Navigation />
+
+            {/* Load Modal */}
       {showLoadModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
           <div className="bg-gray-900 rounded-2xl p-6 w-full max-w-sm relative">
             <button
               className="absolute top-3 right-3 text-gray-400 hover:text-white"
-              onClick={() => setShowLoadModal(false)}
+              onClick={() => {
+                setShowLoadModal(false)
+                setLoadModalStep('options')
+                setHasAcceptedDisclaimer(false)
+              }}
             >
               <X className="w-5 h-5" />
             </button>
-            <h2 className="text-lg font-bold mb-4 text-white">Load Funds</h2>
-            <div className="mb-4">
-              <div className="text-gray-400 text-sm mb-1">Wallet Address</div>
-              <div className="flex items-center gap-2">
-                <span className="font-mono text-white">{walletAddress}</span>
+            
+            {loadModalStep === 'options' && (
+              <>
+                <h2 className="text-lg font-bold mb-4 text-white">Load Funds</h2>
+                <div className="space-y-3">
+                  <Button
+                    className="w-full bg-usdt hover:bg-primary-600 text-white font-semibold py-3 rounded-xl"
+                    onClick={() => setLoadModalStep('fiat')}
+                  >
+                    <Globe className="w-4 h-4 mr-2" /> Load with Fiat
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="w-full text-usdt border-usdt hover:bg-usdt/10 font-semibold py-3 rounded-xl"
+                    onClick={() => setLoadModalStep('crypto-disclaimer')}
+                  >
+                    <Wallet className="w-4 h-4 mr-2" /> Load with Crypto
+                  </Button>
+                </div>
+              </>
+            )}
+
+            {loadModalStep === 'fiat' && (
+              <>
+                <h2 className="text-lg font-bold mb-4 text-white">Load with Fiat</h2>
+                <div className="mb-4">
+                  <div className="text-gray-400 text-sm mb-1">Wallet Address</div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-white">{walletAddress}</span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleCopyAddress}
+                      className="text-gray-400 hover:text-usdt"
+                    >
+                      {isAddressCopied ? <Check className="w-4 h-4 text-usdt" /> : <Copy className="w-4 h-4" />}
+                    </Button>
+                  </div>
+                </div>
                 <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleCopyAddress}
-                  className="text-gray-400 hover:text-usdt"
+                  className="w-full bg-usdt hover:bg-primary-600 text-white font-semibold py-3 rounded-xl"
+                  onClick={handleBuySol}
                 >
-                  {isAddressCopied ? <Check className="w-4 h-4 text-usdt" /> : <Copy className="w-4 h-4" />}
+                  <Globe className="w-4 h-4 mr-2" /> Buy SOL with Fiat
                 </Button>
-              </div>
-            </div>
-            <div className="space-y-3">
-            <Button
-                className="w-full bg-usdt hover:bg-primary-600 text-white font-semibold py-3 rounded-xl"
-              onClick={handleBuySol}
-              >
-                <Globe className="w-4 h-4 mr-2" /> Load with Fiat
-              </Button>
-              <Button
-                variant="outline"
-                className="w-full text-usdt border-usdt hover:bg-usdt/10 font-semibold py-3 rounded-xl"
-                onClick={() => {
-                  setShowLoadModal(false)
-                  // Navigate to receive page for crypto deposits
-                  router.push('/receive')
-                }}
-              >
-                <Wallet className="w-4 h-4 mr-2" /> Load with Crypto
-              </Button>
-            </div>
+              </>
+            )}
+
+            {loadModalStep === 'crypto-disclaimer' && (
+              <>
+                <h2 className="text-lg font-bold mb-4 text-white">Important Notice</h2>
+                <div className="mb-6">
+                  <div className="bg-yellow-900/20 border border-yellow-500/30 rounded-lg p-4 mb-4">
+                    <div className="flex items-start gap-3">
+                      <div className="w-6 h-6 bg-yellow-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <span className="text-yellow-900 text-sm font-bold">!</span>
+                      </div>
+                      <div>
+                        <h3 className="text-yellow-400 font-semibold mb-2">Blockchain Restriction</h3>
+                        <p className="text-gray-300 text-sm leading-relaxed">
+                          I am aware that I can only send SOL tokens on the Solana blockchain to add funds to my wallet.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="checkbox"
+                      id="disclaimer"
+                      checked={hasAcceptedDisclaimer}
+                      onChange={(e) => setHasAcceptedDisclaimer(e.target.checked)}
+                      className="w-4 h-4 text-usdt bg-gray-800 border-gray-600 rounded focus:ring-usdt focus:ring-2"
+                    />
+                    <label htmlFor="disclaimer" className="text-gray-300 text-sm">
+                      I understand and accept this restriction
+                    </label>
+                  </div>
+                </div>
+                <Button
+                  className="w-full bg-usdt hover:bg-primary-600 text-white font-semibold py-3 rounded-xl"
+                  disabled={!hasAcceptedDisclaimer}
+                  onClick={() => setLoadModalStep('crypto-qr')}
+                >
+                  Continue
+                </Button>
+              </>
+            )}
+
+            {loadModalStep === 'crypto-qr' && (
+              <>
+                <h2 className="text-lg font-bold mb-4 text-white">Receive SOL</h2>
+                <div className="mb-6 text-center">
+                  <div className="bg-white p-4 rounded-lg mb-4 inline-block">
+                    {/* QR Code placeholder - you can replace with actual QR code */}
+                    <div className="w-32 h-32 bg-gray-200 rounded flex items-center justify-center">
+                      <span className="text-gray-500 text-xs">QR Code</span>
+                    </div>
+                  </div>
+                  <div className="mb-4">
+                    <div className="text-gray-400 text-sm mb-2">Wallet Address</div>
+                    <div className="bg-gray-800 rounded-lg p-3">
+                      <span className="font-mono text-white text-sm break-all">{walletAddress}</span>
+                    </div>
+                  </div>
+                  <Button
+                    variant="outline"
+                    className="w-full text-usdt border-usdt hover:bg-usdt/10 font-semibold py-3 rounded-xl mb-3"
+                    onClick={handleCopyAddress}
+                  >
+                    {isAddressCopied ? <Check className="w-4 h-4 mr-2" /> : <Copy className="w-4 h-4 mr-2" />}
+                    Copy Address
+                  </Button>
+                </div>
+                <Button
+                  className="w-full bg-usdt hover:bg-primary-600 text-white font-semibold py-3 rounded-xl"
+                  onClick={() => {
+                    setShowLoadModal(false)
+                    setLoadModalStep('options')
+                    setHasAcceptedDisclaimer(false)
+                  }}
+                >
+                  I'm Done
+                </Button>
+              </>
+            )}
           </div>
         </div>
       )}

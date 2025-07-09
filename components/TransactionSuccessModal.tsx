@@ -13,6 +13,7 @@ interface TransactionSuccessModalProps {
   usdAmount: number
   feeInUSD: number
   tokenPrice: number
+  transactionType?: 'buy' | 'sell'
 }
 
 export default function TransactionSuccessModal({
@@ -23,7 +24,8 @@ export default function TransactionSuccessModal({
   tokenAmount,
   usdAmount,
   feeInUSD,
-  tokenPrice
+  tokenPrice,
+  transactionType = 'buy'
 }: TransactionSuccessModalProps) {
   const handleCopyTxId = async () => {
     try {
@@ -92,9 +94,11 @@ export default function TransactionSuccessModal({
                   transition={{ delay: 0.3 }}
                   className="space-y-2 mb-6"
                 >
-                  <h2 className="text-2xl font-bold text-white">Purchase Successful! 🎉</h2>
+                  <h2 className="text-2xl font-bold text-white">
+                    {transactionType === 'sell' ? 'Sale Successful! 🎉' : 'Purchase Successful! 🎉'}
+                  </h2>
                   <p className="text-gray-300 text-sm">
-                    You've successfully bought {tokenSymbol} tokens
+                    You've successfully {transactionType === 'sell' ? 'sold' : 'bought'} {tokenSymbol} tokens
                   </p>
                 </motion.div>
 
