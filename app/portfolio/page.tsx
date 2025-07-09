@@ -1,6 +1,6 @@
 'use client'
 
-import React from 'react'
+import React, { useState } from 'react'
 import { Navigation } from '../../components/Navigation'
 import { Card } from '../../components/ui/Card'
 import { Button } from '../../components/ui/Button'
@@ -8,6 +8,8 @@ import { TrendingUp, TrendingDown, DollarSign, Percent, PieChart, RefreshCw, Loa
 import { PageHeader } from '../../components/PageHeader'
 import { usePortfolio } from '../../hooks/usePortfolio'
 import { useRouter } from 'next/navigation'
+import SellTokenModal from '../../components/SellTokenModal'
+import TransactionSuccessModal from '../../components/TransactionSuccessModal'
 
 export default function PortfolioPage() {
   const { 
@@ -22,15 +24,35 @@ export default function PortfolioPage() {
   } = usePortfolio()
   
   const router = useRouter()
+  const [showSellModal, setShowSellModal] = useState(false)
+  const [selectedHolding, setSelectedHolding] = useState<any>(null)
+  const [showSuccessModal, setShowSuccessModal] = useState(false)
+  const [successData, setSuccessData] = useState<any>(null)
 
   const handleBuyMore = (contractAddress: string) => {
     // Navigate to stocks page with the token pre-selected
     router.push('/stocks')
   }
 
-  const handleSell = (contractAddress: string) => {
-    // Navigate to swap page with sell mode
-    router.push('/swap')
+  const handleSell = (holding: any) => {
+    setSelectedHolding(holding)
+    setShowSellModal(true)
+  }
+
+  const handleSellSuccess = (result: any) => {
+    setSuccessData({
+      txId: result.txId,
+      tokenSymbol: selectedHolding.symbol,
+      tokenAmount: result.tokenAmount || 0,
+      usdAmount: (result.tokenAmount || 0) * selectedHolding.priceUsd,
+      feeInUSD: result.feeInUSD,
+      tokenPrice: selectedHolding.priceUsd
+    })
+    setShowSuccessModal(true)
+    setShowSellModal(false)
+    setSelectedHolding(null)
+    // Refresh portfolio data
+    setTimeout(() => refreshPortfolio(), 2000)
   }
 
   if (isLoading) {
@@ -176,7 +198,7 @@ export default function PortfolioPage() {
                     <Button
                       variant="outline"
                       className="flex-1 text-sm"
-                      onClick={() => handleSell(holding.contractAddress)}
+                      onClick={() => handleSell(holding)}
                     >
                       Sell
                     </Button>
@@ -189,6 +211,37 @@ export default function PortfolioPage() {
       </div>
 
       <Navigation />
+      {/* Sell Modal */}
+      {showSellModal && selectedHolding && (
+        <SellTokenModal
+          isOpen={showSellModal}
+          onClose={() => setShowSellModal(false)}
+          onSuccess={handleSellSuccess}
+          token={{
+            symbol: selectedHolding.symbol,
+            name: selectedHolding.name,
+            priceUsd: selectedHolding.priceUsd.toString(),
+            volume24h: 0,
+            priceChange24h: selectedHolding.change24h || 0,
+            contractAddress: selectedHolding.contractAddress,
+            balance: selectedHolding.balance
+          }}
+        />
+      )}
+
+      {/* Success Modal */}
+      {showSuccessModal && successData && (
+        <TransactionSuccessModal
+          isOpen={showSuccessModal}
+          onClose={() => setShowSuccessModal(false)}
+          txId={successData.txId}
+          tokenSymbol={successData.tokenSymbol}
+          tokenAmount={successData.tokenAmount}
+          usdAmount={successData.usdAmount}
+          feeInUSD={successData.feeInUSD}
+          tokenPrice={successData.tokenPrice}
+        />
+      )}
     </div>
   )
 } 
