@@ -10,6 +10,7 @@ import { PageHeader } from '../../components/PageHeader'
 import { useSwapV2 } from '../../hooks/useSwapV2'
 import { useDynamicWallet } from '../../hooks/useDynamicWallet'
 import { NATIVE_MINT } from '@solana/spl-token'
+import TransactionSuccessModal from '../../components/TransactionSuccessModal'
 
 // Single token address
 const TOKEN_ADDRESS = 'Xsc9qvGR1efVDFGLrVsmkzv3qi45LTBjeUKSPmx9qEh'
@@ -35,6 +36,8 @@ export default function StocksPage() {
   const [quoteData, setQuoteData] = useState<any>(null)
   const [isGettingQuote, setIsGettingQuote] = useState(false)
   const [solPrice, setSolPrice] = useState<number>(0)
+  const [showSuccessModal, setShowSuccessModal] = useState(false)
+  const [successData, setSuccessData] = useState<any>(null)
   
   const { buyToken, getQuote, isLoading: isSwapLoading } = useSwapV2()
   const { isConnected, tokenBalances } = useDynamicWallet()
@@ -172,7 +175,18 @@ export default function StocksPage() {
     
     try {
       const result = await buyToken(selectedToken.contractAddress, usdAmount)
-      alert(`Successfully bought ${selectedToken.symbol}! Transaction: ${result.txId}\nFee: $${result.feeInUSD.toFixed(2)}`)
+      
+      // Set success data with token information
+      setSuccessData({
+        txId: result.txId,
+        tokenSymbol: selectedToken.symbol,
+        tokenAmount: result.tokenAmount || 0,
+        usdAmount,
+        feeInUSD: result.feeInUSD,
+        tokenPrice: result.tokenPrice || parseFloat(selectedToken.priceUsd)
+      })
+      
+      setShowSuccessModal(true)
       setSelectedToken(null)
       setBuyAmountUSD('')
       setQuoteData(null)
@@ -192,6 +206,23 @@ export default function StocksPage() {
   const formatPrice = (price: string) => {
     const numPrice = parseFloat(price)
     return numPrice >= 100 ? numPrice.toFixed(2) : numPrice.toFixed(4)
+  }
+
+  const formatTokenAmount = (amount: number) => {
+    if (amount >= 1) {
+      return amount.toFixed(2)
+    } else if (amount >= 0.01) {
+      return amount.toFixed(4)
+    } else {
+      return amount.toFixed(6)
+    }
+  }
+
+  const getEstimatedTokenAmount = () => {
+    if (!quoteData || !buyAmountUSD) return 0
+    const usdAmount = parseFloat(buyAmountUSD)
+    const outAmount = parseFloat(quoteData.outAmount || '0')
+    return outAmount / Math.pow(10, 9) // Assuming 9 decimals
   }
 
   return (
@@ -366,7 +397,7 @@ export default function StocksPage() {
                       <div className="flex items-center justify-between p-3 bg-gray-800 rounded-lg">
                         <span className="text-gray-400">Estimated Output</span>
                         <span className="font-semibold text-white">
-                          {parseFloat(quoteData.outAmount || '0').toFixed(2)} {selectedToken.symbol}
+                          {formatTokenAmount(getEstimatedTokenAmount())} {selectedToken.symbol}
                         </span>
                       </div>
                       <div className="flex items-center justify-between p-3 bg-gray-800 rounded-lg">
@@ -420,6 +451,20 @@ export default function StocksPage() {
       )}
 
       <Navigation />
+
+      {/* Success Modal */}
+      {showSuccessModal && successData && (
+        <TransactionSuccessModal
+          isOpen={showSuccessModal}
+          onClose={() => setShowSuccessModal(false)}
+          txId={successData.txId}
+          tokenSymbol={successData.tokenSymbol}
+          tokenAmount={successData.tokenAmount}
+          usdAmount={successData.usdAmount}
+          feeInUSD={successData.feeInUSD}
+          tokenPrice={successData.tokenPrice}
+        />
+      )}
     </div>
   )
 } 

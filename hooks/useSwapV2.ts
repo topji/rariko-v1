@@ -16,6 +16,9 @@ interface SwapResult {
   feeCollected: number;
   feeInSol: number;
   feeInUSD: number;
+  tokenAmount?: number; // Amount of tokens bought/sold
+  tokenSymbol?: string; // Symbol of the token
+  tokenPrice?: number; // Price per token in USD
 }
 
 interface QuoteResponse {
@@ -181,6 +184,16 @@ export function useSwapV2() {
         throw new Error('Failed to get swap quote. Please try again.');
       }
       
+      // Calculate token amount from quote
+      const tokenAmount = parseFloat(quote.outAmount) / Math.pow(10, 9); // Assuming 9 decimals for most tokens
+      const tokenPrice = usdAmount / tokenAmount;
+      
+      console.log('📊 Quote details:', {
+        tokenAmount,
+        tokenPrice,
+        outAmount: quote.outAmount
+      });
+      
       // Step 2: Create swap transaction
       const swapTransaction = await createSwapTransaction(
         quote,
@@ -246,7 +259,10 @@ export function useSwapV2() {
         txId,
         feeCollected: feeAmount,
         feeInSol: feeAmount,
-        feeInUSD
+        feeInUSD,
+        tokenAmount,
+        tokenSymbol: 'TOKEN', // This will be updated by the calling component
+        tokenPrice
       };
       
     } catch (error) {
