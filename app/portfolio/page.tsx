@@ -224,7 +224,8 @@ export default function PortfolioPage() {
             volume24h: 0,
             priceChange24h: selectedHolding.change24h || 0,
             contractAddress: selectedHolding.contractAddress,
-            balance: selectedHolding.balance
+            balance: selectedHolding.balance,
+            decimals: selectedHolding.decimals
           }}
         />
       )}

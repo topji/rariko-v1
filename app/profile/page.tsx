@@ -342,9 +342,9 @@ export default function ProfilePage() {
               </div>
             </div>
             <div className="space-y-3">
-              <Button
+            <Button
                 className="w-full bg-usdt hover:bg-primary-600 text-white font-semibold py-3 rounded-xl"
-                onClick={handleBuySol}
+              onClick={handleBuySol}
               >
                 <Globe className="w-4 h-4 mr-2" /> Load with Fiat
               </Button>
@@ -549,7 +549,7 @@ export default function ProfilePage() {
                 className="w-full bg-usdt hover:bg-primary-600"
               >
                 Done
-              </Button>
+            </Button>
             </div>
           </div>
         </div>

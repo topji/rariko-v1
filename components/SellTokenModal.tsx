@@ -15,6 +15,7 @@ interface TokenData {
   priceChange24h: number
   contractAddress: string
   balance: number
+  decimals: number
 }
 
 interface SellTokenModalProps {
@@ -51,8 +52,8 @@ export default function SellTokenModal({ isOpen, onClose, token, onSuccess }: Se
     
     setIsGettingQuote(true)
     try {
-      // Convert token amount to raw amount (assuming 9 decimals)
-      const rawAmount = Math.floor(tokenAmount * Math.pow(10, 9))
+      // Convert token amount to raw amount using the correct decimals
+      const rawAmount = Math.floor(tokenAmount * Math.pow(10, token.decimals))
       
       const quote = await getQuote(
         token.contractAddress,

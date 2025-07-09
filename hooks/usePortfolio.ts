@@ -61,20 +61,23 @@ export function usePortfolio() {
   const hasLoadedRef = useRef(false)
   const currentWalletRef = useRef<string | null>(null)
 
-  // Fetch token price from Jupiter
-  const fetchTokenPrice = async (contractAddress: string): Promise<number> => {
+  // Fetch token price and decimals from Jupiter
+  const fetchTokenPrice = async (contractAddress: string): Promise<{ price: number; decimals: number }> => {
     try {
       const response = await axios.get(`https://lite-api.jup.ag/price/v3?ids=${contractAddress}`)
       const data = response.data
       
       if (data && data[contractAddress]) {
-        return parseFloat(data[contractAddress].usdPrice)
+        return {
+          price: parseFloat(data[contractAddress].usdPrice),
+          decimals: data[contractAddress].decimals || 9
+        }
       }
       
-      return 0
+      return { price: 0, decimals: 9 }
     } catch (error) {
       console.error(`Error fetching price for ${contractAddress}:`, error)
-      return 0
+      return { price: 0, decimals: 9 }
     }
   }
 
@@ -151,7 +154,7 @@ export function usePortfolio() {
               fetchTokenMetadata(contractAddress)
             ])
 
-            const tokenValue = uiAmount * price
+            const tokenValue = uiAmount * price.price
 
             holdings.push({
               symbol: metadata.symbol,
@@ -159,9 +162,9 @@ export function usePortfolio() {
               contractAddress,
               balance: uiAmount,
               balanceFormatted: uiAmount.toFixed(6),
-              priceUsd: price,
+              priceUsd: price.price,
               totalValue: tokenValue,
-              decimals: 9, // Most Solana tokens use 9 decimals
+              decimals: price.decimals,
               change24h: metadata.change24h
             })
 
