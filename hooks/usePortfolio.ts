@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useDynamicWallet } from './useDynamicWallet'
 import { useDynamicContext } from '@dynamic-labs/sdk-react-core'
 import axios from 'axios'
@@ -58,9 +58,11 @@ export function usePortfolio() {
     isLoading: true
   })
   const [isProcessing, setIsProcessing] = useState(false)
+  const hasLoadedRef = useRef(false)
+  const currentWalletRef = useRef<string | null>(null)
 
   // Fetch token price from Jupiter
-  const fetchTokenPrice = useCallback(async (contractAddress: string): Promise<number> => {
+  const fetchTokenPrice = async (contractAddress: string): Promise<number> => {
     try {
       const response = await axios.get(`https://lite-api.jup.ag/price/v3?ids=${contractAddress}`)
       const data = response.data
@@ -74,10 +76,10 @@ export function usePortfolio() {
       console.error(`Error fetching price for ${contractAddress}:`, error)
       return 0
     }
-  }, [])
+  }
 
   // Fetch token metadata from DexScreener
-  const fetchTokenMetadata = useCallback(async (contractAddress: string) => {
+  const fetchTokenMetadata = async (contractAddress: string) => {
     try {
       const response = await axios.get(`https://api.dexscreener.com/tokens/v1/solana/${contractAddress}`)
       const data = response.data
@@ -104,14 +106,19 @@ export function usePortfolio() {
         change24h: 0
       }
     }
-  }, [])
+  }
 
   // Process token balances and fetch additional data
-  const processTokenBalances = useCallback(async () => {
+  const processTokenBalances = async () => {
     if (!isConnected || !walletAddress || isProcessing) {
       if (!isConnected || !walletAddress) {
         setPortfolioData(prev => ({ ...prev, isLoading: false, holdings: [] }))
       }
+      return
+    }
+
+    // Check if we've already loaded data for this wallet
+    if (hasLoadedRef.current && currentWalletRef.current === walletAddress) {
       return
     }
 
@@ -180,6 +187,10 @@ export function usePortfolio() {
         isLoading: false
       })
 
+      // Mark as loaded for this wallet
+      hasLoadedRef.current = true
+      currentWalletRef.current = walletAddress
+
     } catch (error) {
       console.error('Error processing portfolio data:', error)
       setPortfolioData(prev => ({
@@ -190,19 +201,21 @@ export function usePortfolio() {
     } finally {
       setIsProcessing(false)
     }
-  }, [isConnected, walletAddress, isProcessing, fetchTokenPrice, fetchTokenMetadata])
+  }
 
   // Refresh portfolio data
-  const refreshPortfolio = useCallback(() => {
+  const refreshPortfolio = () => {
+    hasLoadedRef.current = false
+    currentWalletRef.current = null
     processTokenBalances()
-  }, [processTokenBalances])
+  }
 
   // Process data when wallet changes
   useEffect(() => {
     if (!isLoadingTokens && isConnected && walletAddress) {
       processTokenBalances()
     }
-  }, [isLoadingTokens, isConnected, walletAddress, processTokenBalances])
+  }, [isLoadingTokens, isConnected, walletAddress])
 
   return {
     ...portfolioData,
