@@ -81,22 +81,28 @@ export default function SellTokenModal({ isOpen, onClose, token, onSuccess }: Se
   }
 
   // Handle sell
-  const handleSellToken = async () => {
-    if (!token || !sellAmount || !isConnected) return
+  const handleSell = async () => {
+    if (!sellAmount || !isConnected || solPrice === 0) return
     
     const tokenAmount = parseFloat(sellAmount)
+    const usdValue = tokenAmount * parseFloat(token.priceUsd)
+    const solAmount = usdValue / solPrice
+    const feeAmount = solAmount * 0.01 // 1% fee
+    const totalSolReceived = solAmount - feeAmount
     
-    if (tokenAmount <= 0 || tokenAmount > token.balance) {
-      alert('Please enter a valid amount to sell')
+    if (tokenAmount > token.balance) {
+      alert(`Insufficient ${token.symbol} balance. You have ${token.balance.toFixed(6)} ${token.symbol}.`)
       return
     }
     
     try {
       const result = await sellToken(token.contractAddress, tokenAmount)
-      onSuccess(result)
-      onClose()
-      setSellAmount('')
-      setQuoteData(null)
+      
+      onSuccess({
+        txId: result.txId,
+        tokenAmount,
+        feeInUSD: result.feeInUSD
+      })
     } catch (error) {
       console.error('Sell failed:', error)
       alert('Transaction failed. Please try again.')
@@ -290,7 +296,7 @@ export default function SellTokenModal({ isOpen, onClose, token, onSuccess }: Se
               Cancel
             </Button>
             <Button
-              onClick={handleSellToken}
+              onClick={handleSell}
               disabled={!sellAmount || parseFloat(sellAmount) <= 0 || parseFloat(sellAmount) > token.balance || isSwapLoading || !isConnected}
               className="flex-1 bg-red-600 hover:bg-red-700"
             >

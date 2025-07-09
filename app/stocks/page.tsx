@@ -190,15 +190,13 @@ export default function StocksPage() {
     
     const usdAmount = parseFloat(buyAmountUSD)
     
-    // Removed minimum amount check
-    // Validate SOL balance (including 1% fee and increased buffer)
+    // Validate SOL balance (including 1% fee)
     const solAmount = usdAmount / solPrice
     const feeAmount = solAmount * 0.01 // 1% fee
-    const bufferAmount = 0.03 * solPrice // Increased buffer for fees
-    const totalRequiredSol = solAmount + feeAmount + (bufferAmount / solPrice)
+    const totalRequiredSol = solAmount + feeAmount
     
     if (solBalance < totalRequiredSol) {
-      alert(`Insufficient SOL balance. You need approximately ${totalRequiredSol.toFixed(4)} SOL (including ${feeAmount.toFixed(4)} SOL fee + buffer). Please ensure you have at least $${((solAmount + 0.03) * solPrice).toFixed(2)} USD worth of SOL.`)
+      alert(`Insufficient SOL balance. You need approximately ${totalRequiredSol.toFixed(4)} SOL (including ${feeAmount.toFixed(4)} SOL fee). Please ensure you have at least $${((solAmount + feeAmount) * solPrice).toFixed(2)} USD worth of SOL.`)
       return
     }
     
@@ -277,7 +275,9 @@ export default function StocksPage() {
         {/* Token Data */}
         {!isLoading && tokensData && (
           <div className="space-y-3">
-            {tokensData.map((token, index) => (
+            {tokensData
+              .filter(token => parseFloat(token.priceUsd) > 0) // Filter out tokens with zero price
+              .map((token, index) => (
               <Card key={token.contractAddress} className="p-4 hover:bg-gray-800/50 transition-colors">
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
