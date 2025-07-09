@@ -279,7 +279,7 @@ export function useSwapV2() {
     }
   };
 
-  const sellToken = async (mintAddress: string, tokenAmount: number): Promise<SwapResult> => {
+  const sellToken = async (mintAddress: string, rawTokenAmount: number): Promise<SwapResult> => {
     if (!primaryWallet || !isSolanaWallet(primaryWallet)) {
       throw new Error('Please connect your wallet first');
     }
@@ -297,15 +297,13 @@ export function useSwapV2() {
       
       const publicKey = new PublicKey(signer.publicKey.toBytes());
       
-      // For selling, we need to get the token balance first
-      // This is a simplified version - you might need to enhance this
-      console.log('🔄 Getting sell quote for token:', mintAddress);
+      console.log('🔄 Getting sell quote for token:', mintAddress, 'raw amount:', rawTokenAmount);
       
       // Get quote for selling token to SOL
       const quote = await getQuote(
         mintAddress,
         NATIVE_MINT.toBase58(),
-        Math.floor(tokenAmount).toString()
+        rawTokenAmount.toString()
       );
       
       if (!quote) {

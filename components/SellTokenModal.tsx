@@ -97,7 +97,10 @@ export default function SellTokenModal({ isOpen, onClose, token, onSuccess }: Se
     }
     
     try {
-      const result = await sellToken(token.contractAddress, tokenAmount)
+      // Convert token amount to raw amount using the correct decimals
+      const rawAmount = Math.floor(tokenAmount * Math.pow(10, token.decimals))
+      
+      const result = await sellToken(token.contractAddress, rawAmount)
       
       onSuccess({
         txId: result.txId,
