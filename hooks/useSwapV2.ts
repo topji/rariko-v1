@@ -209,22 +209,13 @@ export function useSwapV2() {
         throw new Error('Transaction will fail. Please try with a different amount or ensure you have sufficient SOL for fees.');
       }
       
-      // Step 5: Sign transaction
-      console.log('🔄 Requesting wallet signature...');
+      // Step 5: Use Dynamic Labs signAndSendTransaction
+      console.log('🔄 Requesting wallet signature and sending transaction...');
       setIsConfirming(true);
       
-      const signedTx = await signer.signTransaction(transaction);
-      console.log('✅ Transaction signed');
-      
-      // Step 6: Send transaction
-      console.log('🔄 Sending transaction...');
-      
-      txId = await connection.sendTransaction(signedTx, {
-        skipPreflight: false,
-        maxRetries: 3,
-        preflightCommitment: 'confirmed' as Commitment
-      });
-      
+      const result = await signer.signAndSendTransaction(transaction);
+      txId = result.signature;
+      console.log('✅ Transaction signed and sent by wallet');
       console.log('📤 Transaction sent:', txId);
       
       // Step 7: Wait for confirmation
@@ -322,15 +313,10 @@ export function useSwapV2() {
         throw new Error('Sell transaction simulation failed. Please try again.');
       }
       
-      // Sign and send
+      // Use Dynamic Labs signAndSendTransaction
       setIsConfirming(true);
-      const signedTx = await signer.signTransaction(transaction);
-      
-      txId = await connection.sendTransaction(signedTx, {
-        skipPreflight: false,
-        maxRetries: 3,
-        preflightCommitment: 'confirmed' as Commitment
-      });
+      const result = await signer.signAndSendTransaction(transaction);
+      txId = result.signature;
       
       // Wait for confirmation
       const { lastValidBlockHeight, blockhash } = await connection.getLatestBlockhash();

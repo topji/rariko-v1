@@ -96,62 +96,44 @@ export function useSolTransfer() {
         throw new Error(`Transaction will fail: ${simError.message || 'Unknown error'}`);
       }
 
-      // Request wallet signature
-      console.log('🔄 Requesting wallet signature...');
+      // Use Dynamic Labs signAndSendTransaction
+      console.log('🔄 Requesting wallet signature and sending transaction...');
       setIsConfirming(true);
-      
-      const signedTx = await signer.signTransaction(transaction);
-      console.log('✅ Transaction signed by wallet');
-
-      // Send transaction
-      console.log('🔄 Sending transaction to network...');
-      
-      txId = await connection.sendTransaction(signedTx, [], {
-        skipPreflight: false,
-        maxRetries: 3,
-        preflightCommitment: 'confirmed' as Commitment
-      });
-
+      const result = await signer.signAndSendTransaction(transaction);
+      txId = result.signature;
       console.log('📤 Transaction sent:', txId);
 
       // Wait for confirmation
       console.log('🔄 Waiting for confirmation...');
-      
+      if (!txId) {
+        throw new Error('Transaction failed to send');
+      }
       const { lastValidBlockHeight } = await connection.getLatestBlockhash();
-      
       const confirmation = await connection.confirmTransaction({
         signature: txId,
         blockhash: blockhash,
         lastValidBlockHeight: lastValidBlockHeight
       }, 'confirmed' as Commitment);
-
       if (confirmation.value.err) {
         throw new Error(`Transaction failed: ${confirmation.value.err}`);
       }
-
       console.log('✅ Transaction confirmed!');
-      
       // Get actual fee from transaction
       const txDetails = await connection.getTransaction(txId, {
         commitment: 'confirmed',
         maxSupportedTransactionVersion: 0
       });
-      
       const actualFee = txDetails?.meta?.fee || estimatedFee;
-      
       return {
         txId,
         amount: solAmount,
         fee: actualFee / LAMPORTS_PER_SOL
       };
-
     } catch (error) {
       console.error('❌ Transfer failed:', error);
-      
       if (txId) {
         console.log('Transaction ID for debugging:', txId);
       }
-      
       throw error;
     } finally {
       setIsLoading(false);
