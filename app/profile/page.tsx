@@ -244,26 +244,8 @@ export default function ProfilePage() {
         <Card className="bg-gray-800 border border-gray-700/60 backdrop-blur-xl rounded-2xl p-6 flex flex-col gap-4">
           <div className="flex items-center justify-between mb-2">
             <span className="text-gray-400 text-sm">SOL Balance</span>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                className="text-usdt border-usdt hover:bg-usdt/10"
-                onClick={() => setShowSendModal(true)}
-              >
-                <Send className="w-4 h-4 mr-1" /> Send
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className="text-usdt border-usdt hover:bg-usdt/10"
-                onClick={() => setShowLoadModal(true)}
-              >
-                Load
-              </Button>
-            </div>
           </div>
-          <div className="text-3xl font-bold text-white mb-2">{isLoadingTokens ? '...' : solBalance.toFixed(4)} <span className="text-base text-gray-400 font-normal">SOL</span></div>
+          <div className="text-3xl font-bold text-white mb-4">{isLoadingTokens ? '...' : solBalance.toFixed(4)} <span className="text-base text-gray-400 font-normal">SOL</span></div>
           <div className="flex gap-3">
             <Button
               variant="outline"
@@ -271,7 +253,7 @@ export default function ProfilePage() {
               className="flex-1 text-usdt border-usdt hover:bg-usdt/10"
               onClick={() => setShowSendModal(true)}
             >
-              <Send className="w-4 h-4 mr-1" /> Send SOL
+              <Send className="w-4 h-4 mr-1" /> Withdraw
             </Button>
             <Button
               variant="outline"
@@ -279,7 +261,7 @@ export default function ProfilePage() {
               className="flex-1 text-usdt border-usdt hover:bg-usdt/10"
               onClick={() => setShowLoadModal(true)}
             >
-              <Globe className="w-4 h-4 mr-1" /> With Fiat
+              <Globe className="w-4 h-4 mr-1" /> Load Funds
             </Button>
           </div>
         </Card>
@@ -344,7 +326,7 @@ export default function ProfilePage() {
             >
               <X className="w-5 h-5" />
             </button>
-            <h2 className="text-lg font-bold mb-4 text-white">Load SOL</h2>
+            <h2 className="text-lg font-bold mb-4 text-white">Load Funds</h2>
             <div className="mb-4">
               <div className="text-gray-400 text-sm mb-1">Wallet Address</div>
               <div className="flex items-center gap-2">
@@ -359,12 +341,25 @@ export default function ProfilePage() {
                 </Button>
               </div>
             </div>
-            <Button
-              className="w-full bg-usdt hover:bg-primary-600 text-white font-semibold py-3 rounded-xl mt-2"
-              onClick={handleBuySol}
-            >
-              <Globe className="w-4 h-4 mr-2" /> Buy with Fiat
-            </Button>
+            <div className="space-y-3">
+              <Button
+                className="w-full bg-usdt hover:bg-primary-600 text-white font-semibold py-3 rounded-xl"
+                onClick={handleBuySol}
+              >
+                <Globe className="w-4 h-4 mr-2" /> Load with Fiat
+              </Button>
+              <Button
+                variant="outline"
+                className="w-full text-usdt border-usdt hover:bg-usdt/10 font-semibold py-3 rounded-xl"
+                onClick={() => {
+                  setShowLoadModal(false)
+                  // Navigate to receive page for crypto deposits
+                  router.push('/receive')
+                }}
+              >
+                <Wallet className="w-4 h-4 mr-2" /> Load with Crypto
+              </Button>
+            </div>
           </div>
         </div>
       )}

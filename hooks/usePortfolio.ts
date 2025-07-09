@@ -57,6 +57,7 @@ export function usePortfolio() {
     holdings: [],
     isLoading: true
   })
+  const [isProcessing, setIsProcessing] = useState(false)
 
   // Fetch token price from Jupiter
   const fetchTokenPrice = async (contractAddress: string): Promise<number> => {
@@ -107,11 +108,14 @@ export function usePortfolio() {
 
   // Process token balances and fetch additional data
   const processTokenBalances = async () => {
-    if (!isConnected || !walletAddress) {
-      setPortfolioData(prev => ({ ...prev, isLoading: false, holdings: [] }))
+    if (!isConnected || !walletAddress || isProcessing) {
+      if (!isConnected || !walletAddress) {
+        setPortfolioData(prev => ({ ...prev, isLoading: false, holdings: [] }))
+      }
       return
     }
 
+    setIsProcessing(true)
     setPortfolioData(prev => ({ ...prev, isLoading: true }))
 
     try {
@@ -183,6 +187,8 @@ export function usePortfolio() {
         isLoading: false,
         error: 'Failed to load portfolio data'
       }))
+    } finally {
+      setIsProcessing(false)
     }
   }
 
@@ -193,10 +199,10 @@ export function usePortfolio() {
 
   // Process data when wallet changes
   useEffect(() => {
-    if (!isLoadingTokens && isConnected) {
+    if (!isLoadingTokens && isConnected && walletAddress) {
       processTokenBalances()
     }
-  }, [tokenBalances, isLoadingTokens, isConnected, walletAddress])
+  }, [isLoadingTokens, isConnected, walletAddress])
 
   return {
     ...portfolioData,
