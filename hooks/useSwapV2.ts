@@ -55,13 +55,16 @@ export function useSwapV2() {
 
   const getQuote = async (inputMint: string, outputMint: string, amount: string): Promise<QuoteResponse | null> => {
     try {
-      console.log('🔄 Getting quote for:', { inputMint, outputMint, amount });
+      // Ensure amount is a proper integer string for Jupiter API
+      const cleanAmount = Math.floor(parseFloat(amount)).toString();
+      
+      console.log('🔄 Getting quote for:', { inputMint, outputMint, amount: cleanAmount });
       
       const response = await axios.get('https://quote-api.jup.ag/v6/quote', {
         params: {
           inputMint,
           outputMint,
-          amount,
+          amount: cleanAmount,
           slippageBps: 100, // 1% slippage
           swapMode: 'ExactIn',
           onlyDirectRoutes: false,
@@ -286,7 +289,7 @@ export function useSwapV2() {
       const quote = await getQuote(
         mintAddress,
         NATIVE_MINT.toBase58(),
-        tokenAmount.toString()
+        Math.floor(tokenAmount).toString()
       );
       
       if (!quote) {
