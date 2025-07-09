@@ -115,12 +115,49 @@ export function usePortfolio() {
     setPortfolioData(prev => ({ ...prev, isLoading: true }))
 
     try {
+      // Fetch token balances from Jupiter API
+      const response = await axios.get(`https://lite-api.jup.ag/ultra/v1/balances/${walletAddress}`)
+      const balances = response.data
+
       const holdings: TokenHolding[] = []
       let totalValue = 0
 
-      // For now, we'll show placeholder data until we fix the token balance fetching
-      // TODO: Implement proper token balance fetching
-      console.log('Portfolio: Token balance fetching temporarily disabled')
+      // Process each token balance
+      for (const [contractAddress, balanceData] of Object.entries(balances)) {
+        // Skip SOL for now (we'll handle it separately if needed)
+        if (contractAddress === 'SOL') continue
+
+        // Check if this is one of our stock tokens
+        if (STOCK_TOKEN_ADDRESSES.includes(contractAddress)) {
+          const balance = balanceData as any
+          const uiAmount = balance.uiAmount || 0
+
+          // Only include tokens with non-zero balance
+          if (uiAmount > 0) {
+            // Fetch token price and metadata
+            const [price, metadata] = await Promise.all([
+              fetchTokenPrice(contractAddress),
+              fetchTokenMetadata(contractAddress)
+            ])
+
+            const tokenValue = uiAmount * price
+
+            holdings.push({
+              symbol: metadata.symbol,
+              name: metadata.name,
+              contractAddress,
+              balance: uiAmount,
+              balanceFormatted: uiAmount.toFixed(6),
+              priceUsd: price,
+              totalValue: tokenValue,
+              decimals: 9, // Most Solana tokens use 9 decimals
+              change24h: metadata.change24h
+            })
+
+            totalValue += tokenValue
+          }
+        }
+      }
 
       // Sort holdings by total value (descending)
       holdings.sort((a, b) => b.totalValue - a.totalValue)
