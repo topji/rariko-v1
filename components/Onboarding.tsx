@@ -6,22 +6,75 @@ import { useEffect, useState } from "react";
 import { motion } from 'framer-motion'
 import { Logo } from './Logo';
 import DisclaimerModal from './DisclaimerModal';
+import { useUserApi } from '../hooks/useUserApi';
 
 export default function Onboarding() {
   const { primaryWallet } = useDynamicContext();
   const router = useRouter();
   const [showDisclaimer, setShowDisclaimer] = useState(false);
+  const [showUsernamePrompt, setShowUsernamePrompt] = useState(false);
+  const [username, setUsername] = useState('');
+  const [usernameError, setUsernameError] = useState('');
+  const [checking, setChecking] = useState(false);
+  const { checkUser, createUser, checkUsername, loading, error, user } = useUserApi();
 
   // Show disclaimer every time user logs in
   useEffect(() => {
     if (primaryWallet?.address) {
       setShowDisclaimer(true);
+      setChecking(true);
+      checkUser(primaryWallet.address).then((exists) => {
+        setChecking(false);
+        if (!exists) {
+          setShowUsernamePrompt(true);
+        } else {
+          router.push('/');
+        }
+      });
     }
   }, [primaryWallet?.address]);
 
   const handleDisclaimerAccept = () => {
     setShowDisclaimer(false);
-    router.push('/');
+    if (!showUsernamePrompt) router.push('/');
+  };
+
+  const handleUsernameSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setUsernameError('');
+    if (!username) {
+      setUsernameError('Username is required');
+      return;
+    }
+    if (username.length < 3 || username.length > 30) {
+      setUsernameError('Username must be 3-30 characters');
+      return;
+    }
+    if (!/^[a-zA-Z0-9_]+$/.test(username)) {
+      setUsernameError('Only letters, numbers, and underscores allowed');
+      return;
+    }
+    setChecking(true);
+    const isUnique = await checkUsername(username);
+    if (!isUnique) {
+      setUsernameError('Username is taken');
+      setChecking(false);
+      return;
+    }
+    try {
+      if (!primaryWallet?.address) {
+        setUsernameError('Wallet not connected');
+        setChecking(false);
+        return;
+      }
+      await createUser({ username, walletAddress: primaryWallet.address });
+      setShowUsernamePrompt(false);
+      router.push('/');
+    } catch (err) {
+      setUsernameError(error || 'Failed to create user');
+    } finally {
+      setChecking(false);
+    }
   };
 
   return (
@@ -91,6 +144,31 @@ export default function Onboarding() {
               </p>
             </div>
           </motion.div>
+
+          {/* Username Prompt */}
+          {showUsernamePrompt && (
+            <div className="mt-8 bg-gray-800 border border-gray-700 rounded-2xl p-6 shadow-xl">
+              <h2 className="text-xl font-bold text-white mb-4">Choose a Username</h2>
+              <form onSubmit={handleUsernameSubmit}>
+                <input
+                  type="text"
+                  className="w-full px-4 py-3 rounded-xl border border-gray-600 bg-gray-900 text-white mb-2"
+                  placeholder="Enter username"
+                  value={username}
+                  onChange={e => setUsername(e.target.value)}
+                  disabled={checking || loading}
+                />
+                {usernameError && <div className="text-red-400 text-sm mb-2">{usernameError}</div>}
+                <button
+                  type="submit"
+                  className="w-full bg-usdt hover:bg-primary-600 text-white font-semibold py-3 rounded-xl mt-2 disabled:opacity-50"
+                  disabled={checking || loading}
+                >
+                  {checking || loading ? 'Checking...' : 'Create Account'}
+                </button>
+              </form>
+            </div>
+          )}
 
           {/* Features */}
           <motion.div

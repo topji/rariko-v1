@@ -346,7 +346,7 @@ export default function ProfilePage() {
 
       <Navigation />
 
-            {/* Load Modal */}
+      {/* Load Modal */}
       {showLoadModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
           <div className="bg-gray-900 rounded-2xl p-6 w-full max-w-sm relative">
@@ -385,23 +385,23 @@ export default function ProfilePage() {
             {loadModalStep === 'fiat' && (
               <>
                 <h2 className="text-lg font-bold mb-4 text-white">Load with Fiat</h2>
-                <div className="mb-4">
-                  <div className="text-gray-400 text-sm mb-1">Wallet Address</div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-mono text-white">{walletAddress}</span>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={handleCopyAddress}
-                      className="text-gray-400 hover:text-usdt"
-                    >
-                      {isAddressCopied ? <Check className="w-4 h-4 text-usdt" /> : <Copy className="w-4 h-4" />}
-                    </Button>
-                  </div>
-                </div>
+            <div className="mb-4">
+              <div className="text-gray-400 text-sm mb-1">Wallet Address</div>
+              <div className="flex items-center gap-2">
+                <span className="font-mono text-white">{walletAddress}</span>
                 <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleCopyAddress}
+                  className="text-gray-400 hover:text-usdt"
+                >
+                  {isAddressCopied ? <Check className="w-4 h-4 text-usdt" /> : <Copy className="w-4 h-4" />}
+                </Button>
+              </div>
+            </div>
+            <Button
                   className="w-full bg-usdt hover:bg-primary-600 text-white font-semibold py-3 rounded-xl"
-                  onClick={handleBuySol}
+              onClick={handleBuySol}
                 >
                   <Globe className="w-4 h-4 mr-2" /> Buy SOL with Fiat
                 </Button>
