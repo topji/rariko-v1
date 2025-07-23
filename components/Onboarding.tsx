@@ -14,6 +14,7 @@ export default function Onboarding() {
   const [showDisclaimer, setShowDisclaimer] = useState(false);
   const [showUsernamePrompt, setShowUsernamePrompt] = useState(false);
   const [username, setUsername] = useState('');
+  const [referralCode, setReferralCode] = useState('');
   const [usernameError, setUsernameError] = useState('');
   const [checking, setChecking] = useState(false);
   const { checkUser, createUser, checkUsername, loading, error, user } = useUserApi();
@@ -67,7 +68,19 @@ export default function Onboarding() {
         setChecking(false);
         return;
       }
-      await createUser({ username, walletAddress: primaryWallet.address });
+      
+      // Prepare user data with optional referral code
+      const userData: any = { 
+        username, 
+        walletAddress: primaryWallet.address 
+      };
+      
+      // Add referral code if provided
+      if (referralCode.trim()) {
+        userData.referralCode = referralCode.trim();
+      }
+      
+      await createUser(userData);
       setShowUsernamePrompt(false);
       router.push('/');
     } catch (err) {
@@ -148,23 +161,47 @@ export default function Onboarding() {
           {/* Username Prompt */}
           {showUsernamePrompt && (
             <div className="mt-8 bg-gray-800 border border-gray-700 rounded-2xl p-6 shadow-xl">
-              <h2 className="text-xl font-bold text-white mb-4">Choose a Username</h2>
-              <form onSubmit={handleUsernameSubmit}>
-                <input
-                  type="text"
-                  className="w-full px-4 py-3 rounded-xl border border-gray-600 bg-gray-900 text-white mb-2"
-                  placeholder="Enter username"
-                  value={username}
-                  onChange={e => setUsername(e.target.value)}
-                  disabled={checking || loading}
-                />
-                {usernameError && <div className="text-red-400 text-sm mb-2">{usernameError}</div>}
+              <h2 className="text-xl font-bold text-white mb-4">Create Your Account</h2>
+              <form onSubmit={handleUsernameSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2 text-left">
+                    Username *
+                  </label>
+                  <input
+                    type="text"
+                    className="w-full px-4 py-3 rounded-xl border border-gray-600 bg-gray-900 text-white"
+                    placeholder="Enter username"
+                    value={username}
+                    onChange={e => setUsername(e.target.value)}
+                    disabled={checking || loading}
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2 text-left">
+                    Referral Code (Optional)
+                  </label>
+                  <input
+                    type="text"
+                    className="w-full px-4 py-3 rounded-xl border border-gray-600 bg-gray-900 text-white"
+                    placeholder="Enter referral code"
+                    value={referralCode}
+                    onChange={e => setReferralCode(e.target.value)}
+                    disabled={checking || loading}
+                  />
+                  <p className="text-xs text-gray-500 mt-1 text-left">
+                    If you were referred by someone, enter their referral code
+                  </p>
+                </div>
+                
+                {usernameError && <div className="text-red-400 text-sm">{usernameError}</div>}
+                
                 <button
                   type="submit"
-                  className="w-full bg-usdt hover:bg-primary-600 text-white font-semibold py-3 rounded-xl mt-2 disabled:opacity-50"
+                  className="w-full bg-usdt hover:bg-primary-600 text-white font-semibold py-3 rounded-xl disabled:opacity-50"
                   disabled={checking || loading}
                 >
-                  {checking || loading ? 'Checking...' : 'Create Account'}
+                  {checking || loading ? 'Creating Account...' : 'Create Account'}
                 </button>
               </form>
             </div>

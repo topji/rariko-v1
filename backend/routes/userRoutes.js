@@ -88,12 +88,17 @@ router.post('/createUser', [validateUsername, validateWalletAddress], async (req
     
     // Handle referral if provided
     if (referralCode) {
-      const referrer = await User.findOne({ referralCode });
+      const referrer = await User.findByReferralCode(referralCode);
       if (referrer) {
         userData.referredBy = referrer._id;
         // Update referrer's referral count
         referrer.referralCount += 1;
         await referrer.save();
+      } else {
+        // Invalid referral code - return error
+        return res.status(400).json({ 
+          error: 'Invalid referral code. Please check and try again.' 
+        });
       }
     }
     

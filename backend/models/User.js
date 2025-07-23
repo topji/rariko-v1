@@ -72,21 +72,42 @@ userSchema.index({ walletAddress: 1 });
 userSchema.index({ referralCode: 1 });
 
 // Generate referral code before saving
-userSchema.pre('save', function(next) {
+userSchema.pre('save', async function(next) {
   if (!this.referralCode) {
-    this.referralCode = this.generateReferralCode();
+    this.referralCode = await this.generateReferralCode();
   }
   this.updatedAt = Date.now();
   next();
 });
 
 // Method to generate unique referral code
-userSchema.methods.generateReferralCode = function() {
+userSchema.methods.generateReferralCode = async function() {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
   let result = '';
-  for (let i = 0; i < 7; i++) {
-    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  let isUnique = false;
+  let attempts = 0;
+  const maxAttempts = 10;
+  
+  while (!isUnique && attempts < maxAttempts) {
+    result = '';
+    for (let i = 0; i < 7; i++) {
+      result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    
+    // Check if this referral code already exists
+    const existingUser = await this.constructor.findOne({ referralCode: result });
+    if (!existingUser) {
+      isUnique = true;
+    }
+    attempts++;
   }
+  
+  if (!isUnique) {
+    // If we can't find a unique code after max attempts, add a timestamp
+    const timestamp = Date.now().toString(36).toUpperCase();
+    result = result.substring(0, 4) + timestamp.substring(0, 3);
+  }
+  
   return result;
 };
 
@@ -117,6 +138,11 @@ userSchema.statics.findByWalletAddress = async function(walletAddress) {
 userSchema.statics.isUser = async function(walletAddress) {
   const user = await this.findOne({ walletAddress });
   return !!user;
+};
+
+// Static method to find user by referral code
+userSchema.statics.findByReferralCode = async function(referralCode) {
+  return await this.findOne({ referralCode: referralCode.toUpperCase() });
 };
 
 module.exports = mongoose.model('User', userSchema); 
