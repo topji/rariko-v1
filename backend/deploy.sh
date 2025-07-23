@@ -1,9 +1,9 @@
 #!/bin/bash
 
-echo "🚀 Starting RariKo Backend Deployment..."
+echo "🚀 Starting rizz Backend Deployment..."
 
 # Navigate to backend directory
-cd /home/ec2-user/rariko-v1/backend
+cd /home/ec2-user/rizz-v1/backend
 
 # Pull latest changes
 echo "📥 Pulling latest changes from Git..."
@@ -18,7 +18,7 @@ mkdir -p logs
 
 # Restart the application
 echo "🔄 Restarting application..."
-pm2 restart rariko-backend
+pm2 restart rizz-backend
 
 # Check if restart was successful
 if [ $? -eq 0 ]; then
@@ -28,5 +28,5 @@ if [ $? -eq 0 ]; then
 else
     echo "❌ Deployment failed!"
     echo "📋 Recent logs:"
-    pm2 logs rariko-backend --lines 20
+    pm2 logs rizz-backend --lines 20
 fi 

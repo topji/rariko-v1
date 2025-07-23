@@ -11,7 +11,7 @@ dotenv.config()
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'RariKo - Tokenized US Stocks Wallet',
+  title: 'rizz - Tokenized US Stocks Wallet',
   description: 'Trade tokenized US stocks with your crypto wallet',
   manifest: '/manifest.json',
   icons: {
@@ -25,7 +25,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
-    title: 'RariKo',
+    title: 'rizz',
   },
 }
 
@@ -39,7 +39,7 @@ export default function RootLayout({
       <head>
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-        <meta name="apple-mobile-web-app-title" content="RariKo" />
+        <meta name="apple-mobile-web-app-title" content="rizz" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="msapplication-TileColor" content="#8B5CF6" />
         <meta name="msapplication-tap-highlight" content="no" />

@@ -57,12 +57,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = (user: User) => {
     dispatch({ type: 'SET_USER', payload: user })
     // Store user data in localStorage for persistence
-    localStorage.setItem('rariko_user', JSON.stringify(user))
+    localStorage.setItem('rizz_user', JSON.stringify(user))
   }
 
   const logout = () => {
     dispatch({ type: 'LOGOUT' })
-    localStorage.removeItem('rariko_user')
+    localStorage.removeItem('rizz_user')
   }
 
   const updateUser = (updates: Partial<User>) => {
@@ -71,20 +71,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const currentUser = state.user
     if (currentUser) {
       const updatedUser = { ...currentUser, ...updates }
-      localStorage.setItem('rariko_user', JSON.stringify(updatedUser))
+      localStorage.setItem('rizz_user', JSON.stringify(updatedUser))
     }
   }
 
   useEffect(() => {
     // Check for existing user session on app load
-    const savedUser = localStorage.getItem('rariko_user')
+    const savedUser = localStorage.getItem('rizz_user')
     if (savedUser) {
       try {
         const user = JSON.parse(savedUser)
         dispatch({ type: 'SET_USER', payload: user })
       } catch (error) {
         console.error('Error parsing saved user:', error)
-        localStorage.removeItem('rariko_user')
+        localStorage.removeItem('rizz_user')
       }
     } else {
       dispatch({ type: 'SET_LOADING', payload: false })

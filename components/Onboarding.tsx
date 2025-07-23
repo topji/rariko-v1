@@ -27,17 +27,22 @@ export default function Onboarding() {
       checkUser(primaryWallet.address).then((exists) => {
         setChecking(false);
         if (!exists) {
+          // User doesn't exist, will show username prompt after disclaimer
           setShowUsernamePrompt(true);
-        } else {
-          router.push('/');
         }
+        // If user exists, just show disclaimer and then redirect
       });
     }
   }, [primaryWallet?.address]);
 
   const handleDisclaimerAccept = () => {
     setShowDisclaimer(false);
-    if (!showUsernamePrompt) router.push('/');
+    if (showUsernamePrompt) {
+      // New user - stay on page to show username prompt
+    } else {
+      // Existing user - redirect to home
+      router.push('/');
+    }
   };
 
   const handleUsernameSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -117,7 +122,7 @@ export default function Onboarding() {
             <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-usdt to-primary-600 rounded-2xl mb-4 shadow-lg">
               <Logo size="md" />
             </div>
-            <h1 className="text-3xl font-bold text-white mb-2">RariKo</h1>
+            <h1 className="text-3xl font-bold text-white mb-2">rizz</h1>
           </motion.div>
 
           {/* Subtitle */}

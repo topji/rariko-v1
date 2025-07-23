@@ -1,6 +1,6 @@
 module.exports = {
   apps: [{
-    name: 'rariko-backend',
+    name: 'rizz-backend',
     script: 'server.js',
     instances: 1,
     autorestart: true,

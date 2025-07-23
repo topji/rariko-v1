@@ -28,15 +28,30 @@ import {
 } from 'lucide-react'
 import { PageHeader } from '../../components/PageHeader'
 import QRCode from 'qrcode'
+import { useUserApi } from '../../hooks/useUserApi'
 
-const mockReferData = {
-  inviteCode: 'GVV5KNL',
-  volume: 12345.67,
-  referred: [
-    { username: 'alice', time: '2h ago' },
-    { username: 'bob', time: '1d ago' },
-    { username: 'charlie', time: '3d ago' },
-  ],
+// Type definitions
+interface UserData {
+  id: string;
+  username: string;
+  displayName: string;
+  walletAddress: string;
+  referralCode: string;
+  referralCount: number;
+  totalVolume: number;
+  lastLogin: string;
+  createdAt: string;
+}
+
+interface ReferralData {
+  referralCode: string;
+  referralCount: number;
+  totalVolume: number;
+  referredUsers: Array<{
+    username: string;
+    displayName: string;
+    createdAt: string;
+  }>;
 }
 
 export default function ProfilePage() {
@@ -48,6 +63,9 @@ export default function ProfilePage() {
     isLoadingTokens,
     logout,
   } = useDynamicWallet()
+
+  // User API hook for backend integration
+  const { getProfile, getReferrals, user, loading: userLoading } = useUserApi()
 
   // Direct Dynamic Labs hooks
   const { primaryWallet } = useDynamicContext()
@@ -68,6 +86,7 @@ export default function ProfilePage() {
   const [loadModalStep, setLoadModalStep] = useState<'options' | 'fiat' | 'crypto-disclaimer' | 'crypto-qr'>('options')
   const [hasAcceptedDisclaimer, setHasAcceptedDisclaimer] = useState(false)
   const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string>('')
+  const [referralData, setReferralData] = useState<ReferralData | null>(null)
 
   // Avatar mock (replace with real avatar if available)
   const avatarUrl = 'https://api.dicebear.com/7.x/adventurer/svg?seed=' + (displayName || 'user')
@@ -78,6 +97,18 @@ export default function ProfilePage() {
   // SOL transfer hook
   const { sendSol, isLoading: isTransferLoading, isConfirming } = useSolTransfer()
 
+  // Load user data when wallet is connected
+  useEffect(() => {
+    if (walletAddress) {
+      getProfile(walletAddress);
+      getReferrals(walletAddress).then(data => {
+        if (data) {
+          setReferralData(data);
+        }
+      });
+    }
+  }, [walletAddress, getProfile, getReferrals]);
+
   const handleCopyAddress = async () => {
     if (walletAddress) {
       await navigator.clipboard.writeText(walletAddress)
@@ -87,9 +118,12 @@ export default function ProfilePage() {
   }
 
   const handleCopyInvite = async () => {
-    await navigator.clipboard.writeText(mockReferData.inviteCode)
-    setIsInviteCopied(true)
-    setTimeout(() => setIsInviteCopied(false), 2000)
+    const referralCode = user?.referralCode || referralData?.referralCode;
+    if (referralCode) {
+      await navigator.clipboard.writeText(referralCode)
+      setIsInviteCopied(true)
+      setTimeout(() => setIsInviteCopied(false), 2000)
+    }
   }
 
   const handleBuySol = () => {
@@ -306,25 +340,34 @@ export default function ProfilePage() {
               size="sm"
               className="text-usdt border-usdt hover:bg-usdt/10"
               onClick={handleCopyInvite}
+              disabled={userLoading || !user?.referralCode}
             >
               {isInviteCopied ? <Check className="w-4 h-4 text-usdt" /> : <Copy className="w-4 h-4" />}
-              <span className="ml-2 font-mono">{mockReferData.inviteCode}</span>
+              <span className="ml-2 font-mono">
+                {userLoading ? 'Loading...' : user?.referralCode || 'No code'}
+              </span>
             </Button>
           </div>
           <div className="mb-4">
             <span className="text-gray-400 text-sm">Volume traded by referees:</span>
-            <span className="ml-2 text-lg font-bold text-usdt">${mockReferData.volume.toLocaleString()}</span>
+            <span className="ml-2 text-lg font-bold text-usdt">
+              ${referralData?.totalVolume?.toLocaleString() || 0}
+            </span>
           </div>
           <div>
             <h4 className="text-sm font-semibold text-gray-300 mb-2">Referred Users</h4>
             <div className="space-y-2">
-              {mockReferData.referred.map((ref, i) => (
+              {userLoading ? (
+                <div className="text-gray-500 text-sm">Loading...</div>
+              ) : referralData?.referredUsers?.map((ref, i) => (
                 <div key={i} className="flex items-center justify-between bg-gray-900/60 rounded-lg px-4 py-2">
                   <span className="font-mono text-white">{ref.username}</span>
-                  <span className="text-xs text-gray-400">{ref.time}</span>
+                  <span className="text-xs text-gray-400">
+                    {new Date(ref.createdAt).toLocaleDateString()}
+                  </span>
                 </div>
               ))}
-              {mockReferData.referred.length === 0 && (
+              {!userLoading && (!referralData?.referredUsers || referralData.referredUsers.length === 0) && (
                 <div className="text-gray-500 text-sm">No referred users yet.</div>
               )}
             </div>

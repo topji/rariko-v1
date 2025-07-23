@@ -44,7 +44,7 @@ export default function DisclaimerModal({ isOpen, onAccept }: DisclaimerModalPro
               <h2 className="text-xl font-bold text-white">Important Disclaimer</h2>
             </div>
             <p className="text-gray-300 text-sm">
-              Please read and accept the following terms before using RariKo
+              Please read and accept the following terms before using rizz
             </p>
           </div>
 
@@ -53,11 +53,11 @@ export default function DisclaimerModal({ isOpen, onAccept }: DisclaimerModalPro
             <div className="bg-gray-800/50 border border-gray-700/50 rounded-lg p-4 mb-6">
               <div className="space-y-4 text-sm text-gray-300 leading-relaxed">
                 <p>
-                  <strong className="text-white">I agree that RariKo offers a platform to invest in tokenized assets like stocks backed by real world stocks.</strong>
+                  <strong className="text-white">I agree that rizz offers a platform to invest in tokenized assets like stocks backed by real world stocks.</strong>
                 </p>
                 
                 <p>
-                  <strong className="text-white">I fully understand that I have full custody of my investments and funds in my Wallet and RariKo cannot access my funds.</strong>
+                  <strong className="text-white">I fully understand that I have full custody of my investments and funds in my Wallet and rizz cannot access my funds.</strong>
                 </p>
                 
                 <p>

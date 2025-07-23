@@ -19,7 +19,7 @@ const testOrder = {
 };
 
 async function testAPI() {
-  console.log('🧪 Testing RariKo Backend API...\n');
+  console.log('🧪 Testing rizz Backend API...\n');
 
   try {
     // Test 1: Health check

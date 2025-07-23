@@ -1,7 +1,7 @@
 {
-  "name": "RariKo - Tokenized US Stocks Wallet",
-  "short_name": "RariKo",
-  "description": "Trade tokenized US stocks with your crypto wallet - RariKo",
+  "name": "rizz - Tokenized US Stocks Wallet",
+  "short_name": "rizz",
+  "description": "Trade tokenized US stocks with your crypto wallet - rizz",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#000000",

@@ -15,8 +15,8 @@ export function Logo({ size = 'md', className = '' }: LogoProps) {
   return (
     <div className={`${sizeClasses[size]} ${className}`}>
       <img
-        src="/rarikov1-logo.png"
-        alt="RariKo Logo"
+        src="/rizzv1-logo.png"
+        alt="rizz Logo"
         className="w-full h-full object-contain"
       />
     </div>
@@ -35,7 +35,7 @@ export function TextLogo({ size = 'md', className = '' }: LogoProps) {
     <div className={`flex items-center gap-2 ${className}`}>
       <Logo size={size} />
       <span className={`font-bold ${sizeClasses[size]} bg-gradient-to-r from-green-400 via-blue-500 to-purple-500 bg-clip-text text-transparent`}>
-        RariKo
+        rizz
       </span>
     </div>
   )

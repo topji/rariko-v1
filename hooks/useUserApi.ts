@@ -1,13 +1,36 @@
 import { useState, useCallback } from 'react';
 import { userApi } from '../lib/api';
 
+interface UserData {
+  id: string;
+  username: string;
+  displayName: string;
+  walletAddress: string;
+  referralCode: string;
+  referralCount: number;
+  totalVolume: number;
+  lastLogin: string;
+  createdAt: string;
+}
+
+interface ReferralData {
+  referralCode: string;
+  referralCount: number;
+  totalVolume: number;
+  referredUsers: Array<{
+    username: string;
+    displayName: string;
+    createdAt: string;
+  }>;
+}
+
 export function useUserApi() {
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [user, setUser] = useState(null);
+  const [error, setError] = useState<string | null>(null);
+  const [user, setUser] = useState<UserData | null>(null);
 
   // Check if user exists
-  const checkUser = useCallback(async (walletAddress) => {
+  const checkUser = useCallback(async (walletAddress: string): Promise<boolean> => {
     if (!walletAddress) return false;
     
     setLoading(true);
@@ -16,7 +39,7 @@ export function useUserApi() {
     try {
       const result = await userApi.isUser(walletAddress);
       return result.exists;
-    } catch (err) {
+    } catch (err: any) {
       setError(err.message);
       return false;
     } finally {
@@ -25,7 +48,7 @@ export function useUserApi() {
   }, []);
 
   // Create new user
-  const createUser = useCallback(async (userData) => {
+  const createUser = useCallback(async (userData: any): Promise<UserData> => {
     setLoading(true);
     setError(null);
     
@@ -33,7 +56,7 @@ export function useUserApi() {
       const result = await userApi.createUser(userData);
       setUser(result.user);
       return result.user;
-    } catch (err) {
+    } catch (err: any) {
       setError(err.message);
       throw err;
     } finally {
@@ -42,7 +65,7 @@ export function useUserApi() {
   }, []);
 
   // Check username uniqueness
-  const checkUsername = useCallback(async (username) => {
+  const checkUsername = useCallback(async (username: string): Promise<boolean> => {
     if (!username) return false;
     
     setLoading(true);
@@ -51,7 +74,7 @@ export function useUserApi() {
     try {
       const result = await userApi.isUniqueUsername(username);
       return result.isUnique;
-    } catch (err) {
+    } catch (err: any) {
       setError(err.message);
       return false;
     } finally {
@@ -60,7 +83,7 @@ export function useUserApi() {
   }, []);
 
   // Get user profile
-  const getProfile = useCallback(async (walletAddress) => {
+  const getProfile = useCallback(async (walletAddress: string): Promise<UserData | null> => {
     if (!walletAddress) return null;
     
     setLoading(true);
@@ -70,7 +93,7 @@ export function useUserApi() {
       const result = await userApi.getProfile(walletAddress);
       setUser(result.user);
       return result.user;
-    } catch (err) {
+    } catch (err: any) {
       setError(err.message);
       return null;
     } finally {
@@ -79,7 +102,7 @@ export function useUserApi() {
   }, []);
 
   // Update user profile
-  const updateProfile = useCallback(async (walletAddress, profileData) => {
+  const updateProfile = useCallback(async (walletAddress: string, profileData: any): Promise<UserData | null> => {
     if (!walletAddress) return null;
     
     setLoading(true);
@@ -89,7 +112,7 @@ export function useUserApi() {
       const result = await userApi.updateProfile(walletAddress, profileData);
       setUser(result.user);
       return result.user;
-    } catch (err) {
+    } catch (err: any) {
       setError(err.message);
       throw err;
     } finally {
@@ -98,7 +121,7 @@ export function useUserApi() {
   }, []);
 
   // Get user referrals
-  const getReferrals = useCallback(async (walletAddress) => {
+  const getReferrals = useCallback(async (walletAddress: string): Promise<ReferralData | null> => {
     if (!walletAddress) return null;
     
     setLoading(true);
@@ -107,7 +130,7 @@ export function useUserApi() {
     try {
       const result = await userApi.getReferrals(walletAddress);
       return result;
-    } catch (err) {
+    } catch (err: any) {
       setError(err.message);
       return null;
     } finally {

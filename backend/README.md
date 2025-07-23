@@ -1,6 +1,6 @@
-# RariKo Backend API
+# rizz Backend API
 
-A Node.js backend server for the RariKo tokenized stock trading platform.
+A Node.js backend server for the rizz tokenized stock trading platform.
 
 ## Features
 

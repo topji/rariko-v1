@@ -1,4 +1,4 @@
-# EC2 Deployment Guide for RariKo Backend
+# EC2 Deployment Guide for rizz Backend
 
 ## Prerequisites
 - AWS Account
@@ -68,8 +68,8 @@ sudo systemctl enable nginx
 ### 3.1 Clone Repository
 ```bash
 cd /home/ec2-user
-git clone https://github.com/topji/rariko-v1.git
-cd rariko-v1/backend
+git clone https://github.com/topji/rizz-v1.git
+cd rizz-v1/backend
 ```
 
 ### 3.2 Install Dependencies
@@ -85,7 +85,7 @@ sudo nano .env
 Add your environment variables:
 ```bash
 NODE_ENV=production
-MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/rariko?retryWrites=true&w=majority
+MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/rizz?retryWrites=true&w=majority
 FRONTEND_URL=https://your-amplify-app.amplifyapp.com
 JWT_SECRET=your-super-secret-jwt-key-here
 PORT=5000
@@ -109,7 +109,7 @@ Add this content:
 ```javascript
 module.exports = {
   apps: [{
-    name: 'rariko-backend',
+    name: 'rizz-backend',
     script: 'server.js',
     instances: 1,
     autorestart: true,
@@ -134,7 +134,7 @@ pm2 startup
 
 ### 5.1 Create Nginx Configuration
 ```bash
-sudo nano /etc/nginx/conf.d/rariko-backend.conf
+sudo nano /etc/nginx/conf.d/rizz-backend.conf
 ```
 
 Add this configuration:
@@ -204,16 +204,16 @@ NEXT_PUBLIC_API_URL=https://your-domain.com/api
 ### 9.1 PM2 Commands
 ```bash
 # View logs
-pm2 logs rariko-backend
+pm2 logs rizz-backend
 
 # Monitor processes
 pm2 monit
 
 # Restart application
-pm2 restart rariko-backend
+pm2 restart rizz-backend
 
 # Stop application
-pm2 stop rariko-backend
+pm2 stop rizz-backend
 ```
 
 ### 9.2 Nginx Commands
@@ -239,10 +239,10 @@ nano deploy.sh
 Add this content:
 ```bash
 #!/bin/bash
-cd /home/ec2-user/rariko-v1/backend
+cd /home/ec2-user/rizz-v1/backend
 git pull origin main
 npm install
-pm2 restart rariko-backend
+pm2 restart rizz-backend
 echo "Deployment completed!"
 ```
 

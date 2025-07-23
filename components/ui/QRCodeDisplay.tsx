@@ -40,7 +40,7 @@ export function QRCodeDisplay({
     const canvas = document.querySelector('canvas')
     if (canvas) {
       const link = document.createElement('a')
-      link.download = 'rariko-qr.png'
+      link.download = 'rizz-qr.png'
       link.href = canvas.toDataURL()
       link.click()
     }

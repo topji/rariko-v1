@@ -24,7 +24,7 @@ export function PageHeader({ showRefresh = false, onRefresh, isRefreshing = fals
         <div className="flex items-center space-x-3">
           <Logo size="md" />
           <div>
-            <h1 className="text-lg font-semibold text-white">RariKo</h1>
+            <h1 className="text-lg font-semibold text-white">rizz</h1>
             <p className="text-sm text-gray-400">Tokenized US Stocks Wallet</p>
           </div>
         </div>

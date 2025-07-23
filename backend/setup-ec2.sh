@@ -1,6 +1,6 @@
 #!/bin/bash
 
-echo "🚀 Setting up RariKo Backend on EC2..."
+echo "🚀 Setting up rizz Backend on EC2..."
 
 # Update system
 echo "📦 Updating system packages..."
@@ -32,14 +32,14 @@ sudo systemctl enable nginx
 # Clone repository
 echo "📥 Cloning repository..."
 cd /home/ec2-user
-if [ -d "rariko-v1" ]; then
+if [ -d "rizz-v1" ]; then
     echo "📁 Repository already exists, pulling latest changes..."
-    cd rariko-v1
+    cd rizz-v1
     git pull origin main
 else
     echo "📁 Cloning repository..."
-    git clone https://github.com/topji/rariko-v1.git
-    cd rariko-v1
+    git clone https://github.com/topji/rizz-v1.git
+    cd rizz-v1
 fi
 
 # Navigate to backend
@@ -60,7 +60,7 @@ if [ ! -f ".env" ]; then
     echo "📝 Creating .env file template..."
     cat > .env << EOF
 NODE_ENV=production
-MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/rariko?retryWrites=true&w=majority
+MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/rizz?retryWrites=true&w=majority
 FRONTEND_URL=https://your-amplify-app.amplifyapp.com
 JWT_SECRET=your-super-secret-jwt-key-here
 PORT=5000
@@ -70,7 +70,7 @@ fi
 
 # Copy Nginx configuration
 echo "📝 Setting up Nginx configuration..."
-sudo cp nginx.conf /etc/nginx/conf.d/rariko-backend.conf
+sudo cp nginx.conf /etc/nginx/conf.d/rizz-backend.conf
 
 # Test Nginx configuration
 sudo nginx -t
@@ -82,10 +82,10 @@ echo "✅ Setup completed!"
 echo ""
 echo "📋 Next steps:"
 echo "1. Edit .env file with your actual values:"
-echo "   sudo nano /home/ec2-user/rariko-v1/backend/.env"
+echo "   sudo nano /home/ec2-user/rizz-v1/backend/.env"
 echo ""
 echo "2. Start the application:"
-echo "   cd /home/ec2-user/rariko-v1/backend"
+echo "   cd /home/ec2-user/rizz-v1/backend"
 echo "   pm2 start ecosystem.config.js"
 echo "   pm2 save"
 echo "   pm2 startup"

@@ -76,7 +76,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     dispatch({ type: 'SET_WALLET', payload: wallet })
     
     // Store wallet data in localStorage
-    localStorage.setItem('rariko_wallet', JSON.stringify(wallet))
+    localStorage.setItem('rizz_wallet', JSON.stringify(wallet))
   }
 
   const updateBalance = (balance: number) => {
@@ -85,7 +85,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     // Update localStorage
     if (state.wallet) {
       const updatedWallet = { ...state.wallet, balance }
-      localStorage.setItem('rariko_wallet', JSON.stringify(updatedWallet))
+      localStorage.setItem('rizz_wallet', JSON.stringify(updatedWallet))
     }
   }
 
@@ -98,7 +98,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
         ...state.wallet,
         transactions: [transaction, ...state.wallet.transactions],
       }
-      localStorage.setItem('rariko_wallet', JSON.stringify(updatedWallet))
+      localStorage.setItem('rizz_wallet', JSON.stringify(updatedWallet))
     }
   }
 
@@ -155,14 +155,14 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     // Load wallet data from localStorage on app load
-    const savedWallet = localStorage.getItem('rariko_wallet')
+    const savedWallet = localStorage.getItem('rizz_wallet')
     if (savedWallet) {
       try {
         const wallet = JSON.parse(savedWallet)
         dispatch({ type: 'SET_WALLET', payload: wallet })
       } catch (error) {
         console.error('Error parsing saved wallet:', error)
-        localStorage.removeItem('rariko_wallet')
+        localStorage.removeItem('rizz_wallet')
         dispatch({ type: 'SET_LOADING', payload: false })
       }
     } else {
