@@ -15,7 +15,7 @@ export function Logo({ size = 'md', className = '' }: LogoProps) {
   return (
     <div className={`${sizeClasses[size]} ${className}`}>
       <img
-        src="/rizzv1-logo.png"
+        src="/rarikov1-logo.png"
         alt="rizz Logo"
         className="w-full h-full object-contain"
       />
