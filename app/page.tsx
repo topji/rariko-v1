@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { 
   Wallet, 
@@ -26,6 +26,8 @@ import { useRouter } from 'next/navigation'
 import { Navigation } from '../components/Navigation'
 import WalletCheck from '../components/WalletCheck'
 import { PageHeader } from '../components/PageHeader'
+import { useUserApi } from '../hooks/useUserApi'
+import { orderApi } from '../lib/api'
 
 export default function DashboardPage() {
   const {
@@ -41,51 +43,85 @@ export default function DashboardPage() {
   const router = useRouter()
   const [showBalance, setShowBalance] = useState(true)
   const [isAddressCopied, setIsAddressCopied] = useState(false)
+  const [dashboardData, setDashboardData] = useState({
+    portfolioValue: 0,
+    totalVolume: 0,
+    totalProfitLoss: 0,
+    profitLossPercent: 0,
+    ordersCount: 0,
+    recentOrders: [] as any[]
+  })
+  const [isLoadingDashboard, setIsLoadingDashboard] = useState(true)
+  const [userProfile, setUserProfile] = useState<any>(null)
+
+  // User API hook
+  const { getProfile, loading: userLoading } = useUserApi()
 
   // Get SOL balance from token balances
   const solBalance = tokenBalances?.find(token => token.symbol === 'SOL')?.balance || 0
   const solBalanceUSD = tokenBalances?.find(token => token.symbol === 'SOL')?.marketValue || 0
 
-  // Mock dashboard data (you can replace with real data later)
-  const dashboardData = {
-    portfolioValue: 15420.67,
-    totalVolume: 45678.90,
-    totalProfitLoss: 1245.32,
-    profitLossPercent: 8.78,
-    ordersCount: 23,
-    recentOrders: [
-      {
-        id: '1',
-        type: 'buy' as const,
-        symbol: 'AAPL',
-        shares: 5,
-        price: 175.43,
-        total: 877.15,
-        status: 'completed' as const,
-        timestamp: new Date(Date.now() - 1000 * 60 * 30),
-      },
-      {
-        id: '2',
-        type: 'sell' as const,
-        symbol: 'TSLA',
-        shares: 3,
-        price: 248.42,
-        total: 745.26,
-        status: 'pending' as const,
-        timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2),
-      },
-      {
-        id: '3',
-        type: 'buy' as const,
-        symbol: 'NVDA',
-        shares: 2,
-        price: 485.09,
-        total: 970.18,
-        status: 'completed' as const,
-        timestamp: new Date(Date.now() - 1000 * 60 * 60 * 4),
-      },
-    ]
-  }
+  // Fetch dashboard data from backend
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      if (!walletAddress) return;
+      
+      setIsLoadingDashboard(true);
+      try {
+        // Fetch user profile
+        const profile = await getProfile(walletAddress);
+        if (profile) {
+          setUserProfile(profile);
+        }
+
+        // Fetch user orders
+        const ordersResponse = await orderApi.getUserOrders(walletAddress, { limit: 5 });
+        const orders = ordersResponse.orders || [];
+
+        // Fetch user volume
+        const volumeResponse = await orderApi.getUserVolume(walletAddress);
+        const totalVolume = volumeResponse.totalVolume || 0;
+
+        // Calculate portfolio value and profit/loss (simplified calculation)
+        const portfolioValue = solBalanceUSD + (totalVolume * 0.1); // Assuming 10% of volume as portfolio value
+        const totalProfitLoss = portfolioValue - totalVolume;
+        const profitLossPercent = totalVolume > 0 ? (totalProfitLoss / totalVolume) * 100 : 0;
+
+        setDashboardData({
+          portfolioValue,
+          totalVolume,
+          totalProfitLoss,
+          profitLossPercent,
+          ordersCount: orders.length,
+          recentOrders: orders.map((order: any) => ({
+            id: order.id,
+            type: order.type,
+            symbol: order.symbol,
+            shares: order.quantity,
+            price: order.price,
+            total: order.total,
+            status: order.status,
+            timestamp: new Date(order.createdAt)
+          }))
+        });
+      } catch (error) {
+        console.error('Error fetching dashboard data:', error);
+        // Fallback to default values
+        setDashboardData({
+          portfolioValue: solBalanceUSD,
+          totalVolume: 0,
+          totalProfitLoss: 0,
+          profitLossPercent: 0,
+          ordersCount: 0,
+          recentOrders: []
+        });
+      } finally {
+        setIsLoadingDashboard(false);
+      }
+    };
+
+    fetchDashboardData();
+  }, [walletAddress, solBalanceUSD, getProfile]);
 
   const getOrderIcon = (type: 'buy' | 'sell') => {
     if (type === 'buy') {
@@ -146,7 +182,15 @@ export default function DashboardPage() {
           )}
         </PageHeader>
 
-        <div className="px-4 py-6 space-y-6">
+        {isLoadingDashboard ? (
+          <div className="px-4 py-6 flex items-center justify-center">
+            <div className="flex items-center gap-2">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-usdt"></div>
+              <span className="text-gray-400">Loading dashboard...</span>
+            </div>
+          </div>
+        ) : (
+          <div className="px-4 py-6 space-y-6">
           {/* Portfolio Value Card */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -312,6 +356,7 @@ export default function DashboardPage() {
             </div>
           </motion.div>
         </div>
+        )}
         
         {/* Bottom Navigation */}
         <Navigation />

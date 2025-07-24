@@ -100,14 +100,28 @@ export default function ProfilePage() {
 
   // Load user data when wallet is connected
   useEffect(() => {
-    if (walletAddress) {
-      getProfile(walletAddress);
-      getReferrals(walletAddress).then(data => {
-        if (data) {
-          setReferralData(data);
+    const loadUserData = async () => {
+      if (walletAddress) {
+        try {
+          // Load user profile
+          const profile = await getProfile(walletAddress);
+          if (profile) {
+            // Update display name to use username from backend
+            // This will be used in the UI
+          }
+          
+          // Load referral data
+          const referrals = await getReferrals(walletAddress);
+          if (referrals) {
+            setReferralData(referrals);
+          }
+        } catch (error) {
+          console.error('Error loading user data:', error);
         }
-      });
-    }
+      }
+    };
+
+    loadUserData();
   }, [walletAddress, getProfile, getReferrals]);
 
   const handleCopyAddress = async () => {
@@ -255,7 +269,9 @@ export default function ProfilePage() {
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
-              <span className="text-2xl font-bold truncate">{displayName}</span>
+              <span className="text-2xl font-bold truncate">
+                {user?.username || displayName}
+              </span>
               {/* 3-dot menu */}
               <div className="relative">
                 <button 
