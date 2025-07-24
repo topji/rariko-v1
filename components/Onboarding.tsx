@@ -30,58 +30,84 @@ export default function Onboarding() {
       
       setChecking(true);
       
-      // Direct API call for debugging
-      const checkUserDirectly = async () => {
-        try {
-          const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-          if (!apiUrl) {
-            console.error('❌ NEXT_PUBLIC_API_URL is not set');
-            setDebugInfo('Error: API URL not configured');
-            setShowDisclaimer(true);
-            setShowUsernamePrompt(true);
-            return;
-          }
-          
-          console.log('🔗 Using API URL:', apiUrl);
-          const response = await fetch(`${apiUrl}/users/isUser?walletAddress=${primaryWallet.address}`);
-          const data = await response.json();
-          
-          console.log('🔍 Direct API response:', data);
-          setDebugInfo(`API Response: ${JSON.stringify(data)}`);
-          
-          if (response.ok) {
-            const exists = data.exists;
-            console.log('✅ User exists check result:', exists);
-            setUserExists(exists);
-            
-            if (exists) {
-              console.log('👤 User exists - showing disclaimer only');
-              setShowDisclaimer(true);
-              setShowUsernamePrompt(false);
-            } else {
-              console.log('🆕 User does not exist - showing disclaimer and username prompt');
-              setShowDisclaimer(true);
-              setShowUsernamePrompt(true);
+      // Add a small delay to ensure wallet is fully connected
+      const checkUserWithDelay = async () => {
+        // Wait a bit for wallet to be fully ready
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        const maxRetries = 3;
+        let retryCount = 0;
+        
+        const attemptCheck = async (): Promise<boolean> => {
+          try {
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+            if (!apiUrl) {
+              console.error('❌ NEXT_PUBLIC_API_URL is not set');
+              setDebugInfo('Error: API URL not configured');
+              return false;
             }
-          } else {
-            console.error('❌ API error:', data);
-            setDebugInfo(`API Error: ${data.error}`);
-            // On API error, assume user doesn't exist
-            setShowDisclaimer(true);
-            setShowUsernamePrompt(true);
+            
+            console.log(`🔗 Attempt ${retryCount + 1}: Using API URL:`, apiUrl);
+            const response = await fetch(`${apiUrl}/users/isUser?walletAddress=${primaryWallet.address}`);
+            const data = await response.json();
+            
+            console.log('🔍 Direct API response:', data);
+            setDebugInfo(`API Response (attempt ${retryCount + 1}): ${JSON.stringify(data)}`);
+            
+            if (response.ok) {
+              const exists = data.exists;
+              console.log('✅ User exists check result:', exists);
+              setUserExists(exists);
+              
+              if (exists) {
+                console.log('👤 User exists - showing disclaimer only');
+                setShowDisclaimer(true);
+                setShowUsernamePrompt(false);
+              } else {
+                console.log('🆕 User does not exist - showing disclaimer and username prompt');
+                setShowDisclaimer(true);
+                setShowUsernamePrompt(true);
+              }
+              return true; // Success
+            } else {
+              console.error('❌ API error:', data);
+              setDebugInfo(`API Error (attempt ${retryCount + 1}): ${data.error}`);
+              return false; // Failed, should retry
+            }
+          } catch (err: any) {
+            console.error(`❌ Network error (attempt ${retryCount + 1}):`, err);
+            setDebugInfo(`Network Error (attempt ${retryCount + 1}): ${err.message || 'Unknown error'}`);
+            return false; // Failed, should retry
           }
-        } catch (err: any) {
-          console.error('❌ Network error:', err);
-          setDebugInfo(`Network Error: ${err.message || 'Unknown error'}`);
-          // On network error, assume user doesn't exist
+        };
+        
+        // Retry logic
+        while (retryCount < maxRetries) {
+          const success = await attemptCheck();
+          if (success) {
+            break; // Success, exit retry loop
+          }
+          
+          retryCount++;
+          if (retryCount < maxRetries) {
+            console.log(`🔄 Retrying... (${retryCount}/${maxRetries})`);
+            setDebugInfo(`Retrying... (${retryCount}/${maxRetries})`);
+            await new Promise(resolve => setTimeout(resolve, 1000 * retryCount)); // Exponential backoff
+          }
+        }
+        
+        // If all retries failed, assume user doesn't exist
+        if (retryCount >= maxRetries) {
+          console.log('⚠️ All retries failed, assuming user does not exist');
+          setDebugInfo('All retries failed, assuming new user');
           setShowDisclaimer(true);
           setShowUsernamePrompt(true);
-        } finally {
-          setChecking(false);
         }
+        
+        setChecking(false);
       };
       
-      checkUserDirectly();
+      checkUserWithDelay();
     }
   }, [primaryWallet?.address]);
 
@@ -228,11 +254,28 @@ export default function Onboarding() {
           </div>
 
           {/* Debug Info - Remove this in production */}
-          {process.env.NODE_ENV === 'development' && debugInfo && (
+          {process.env.NODE_ENV === 'development' && (
             <div className="mt-4 p-3 bg-yellow-900/20 border border-yellow-600/30 rounded-lg">
-              <p className="text-xs text-yellow-400 font-mono break-all">
-                Debug: {debugInfo}
-              </p>
+              {debugInfo && (
+                <p className="text-xs text-yellow-400 font-mono break-all mb-2">
+                  Debug: {debugInfo}
+                </p>
+              )}
+              <button
+                onClick={() => {
+                  if (primaryWallet?.address) {
+                    setChecking(true);
+                    setDebugInfo('Manual refresh...');
+                    // Trigger the check again
+                    const event = new Event('wallet-connect');
+                    window.dispatchEvent(event);
+                  }
+                }}
+                disabled={checking || !primaryWallet?.address}
+                className="text-xs bg-yellow-600 hover:bg-yellow-700 text-white px-2 py-1 rounded disabled:opacity-50"
+              >
+                {checking ? 'Checking...' : 'Refresh User Check'}
+              </button>
             </div>
           )}
           </motion.div>
