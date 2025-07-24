@@ -29,6 +29,8 @@ export default function PortfolioPage() {
   const [selectedHolding, setSelectedHolding] = useState<any>(null)
   const [showSuccessModal, setShowSuccessModal] = useState(false)
   const [successData, setSuccessData] = useState<any>(null)
+  const [showProcessingModal, setShowProcessingModal] = useState(false)
+  const [processingMessage, setProcessingMessage] = useState('')
 
   const handleBuyMore = (contractAddress: string) => {
     // Navigate to stocks page with the token pre-selected
@@ -41,6 +43,7 @@ export default function PortfolioPage() {
   }
 
   const handleSellSuccess = (result: any) => {
+    setShowProcessingModal(false)
     setSuccessData({
       txId: result.txId,
       tokenSymbol: selectedHolding.symbol,
@@ -245,6 +248,22 @@ export default function PortfolioPage() {
           tokenPrice={successData.tokenPrice}
           transactionType="sell"
         />
+      )}
+
+      {/* Processing Modal */}
+      {showProcessingModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50">
+          <div className="bg-gray-900 rounded-2xl p-8 max-w-sm w-full text-center">
+            <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-usdt mx-auto mb-6"></div>
+            <h3 className="text-xl font-bold text-white mb-2">Processing Transaction</h3>
+            <p className="text-gray-400 mb-4">{processingMessage}</p>
+            <div className="flex items-center justify-center space-x-2">
+              <div className="w-2 h-2 bg-usdt rounded-full animate-bounce"></div>
+              <div className="w-2 h-2 bg-usdt rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+              <div className="w-2 h-2 bg-usdt rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+            </div>
+          </div>
+        </div>
       )}
       </div>
     </WalletCheck>

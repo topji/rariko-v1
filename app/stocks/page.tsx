@@ -12,6 +12,7 @@ import { useDynamicWallet } from '../../hooks/useDynamicWallet'
 import { NATIVE_MINT } from '@solana/spl-token'
 import TransactionSuccessModal from '../../components/TransactionSuccessModal'
 import WalletCheck from '../../components/WalletCheck'
+import { orderApi } from '../../lib/api'
 
 // Token addresses
 const TOKEN_ADDRESSES = [
@@ -55,12 +56,15 @@ export default function StocksPage() {
   const [solPrice, setSolPrice] = useState<number>(0)
   const [showSuccessModal, setShowSuccessModal] = useState(false)
   const [successData, setSuccessData] = useState<any>(null)
+  const [showProcessingModal, setShowProcessingModal] = useState(false)
+  const [processingMessage, setProcessingMessage] = useState('')
   
   const { buyToken, getQuote, isLoading: isSwapLoading } = useSwapV2()
-  const { isConnected, tokenBalances } = useDynamicWallet()
+  const { isConnected, tokenBalances, walletAddress } = useDynamicWallet()
   
   // SOL balance
   const solBalance = tokenBalances?.find(token => token.symbol === 'SOL')?.balance || 0
+  const solBalanceUSD = tokenBalances?.find(token => token.symbol === 'SOL')?.marketValue || 0
 
   // Fetch SOL price
   const fetchSolPrice = async () => {
@@ -187,7 +191,7 @@ export default function StocksPage() {
   }
 
   const handleBuyToken = async () => {
-    if (!selectedToken || !buyAmountUSD || !isConnected || solPrice === 0) return
+    if (!selectedToken || !buyAmountUSD || !isConnected || solPrice === 0 || !walletAddress) return
     
     const usdAmount = parseFloat(buyAmountUSD)
     
@@ -201,10 +205,39 @@ export default function StocksPage() {
       return
     }
     
+    // Show processing modal
+    setShowProcessingModal(true)
+    setProcessingMessage('Creating buy order...')
+    
     try {
+      // Create backend order first
+      const orderData = {
+        walletAddress,
+        tokenSymbol: selectedToken.symbol,
+        tokenName: selectedToken.name,
+        tokenContractAddress: selectedToken.contractAddress,
+        orderType: 'buy',
+        usdAmount,
+        solAmount,
+        feeAmount,
+        status: 'pending'
+      }
+      
+      const orderResponse = await orderApi.createBuyOrder(orderData)
+      setProcessingMessage('Processing transaction...')
+      
+      // Execute the swap
       const result = await buyToken(selectedToken.contractAddress, usdAmount)
       
-      // Set success data with token information
+      // Update order status to completed
+      await orderApi.completeOrder(orderResponse.order.id, {
+        txId: result.txId,
+        tokenAmount: result.tokenAmount || 0,
+        feeInUSD: result.feeInUSD,
+        tokenPrice: result.tokenPrice || parseFloat(selectedToken.priceUsd)
+      })
+      
+      // Set success data
       setSuccessData({
         txId: result.txId,
         tokenSymbol: selectedToken.symbol,
@@ -214,12 +247,14 @@ export default function StocksPage() {
         tokenPrice: result.tokenPrice || parseFloat(selectedToken.priceUsd)
       })
       
+      setShowProcessingModal(false)
       setShowSuccessModal(true)
       setSelectedToken(null)
       setBuyAmountUSD('')
       setQuoteData(null)
     } catch (error) {
       console.error('Buy failed:', error)
+      setShowProcessingModal(false)
       alert('Transaction failed. Please try again.')
     }
   }
@@ -373,39 +408,64 @@ export default function StocksPage() {
                 <label className="block text-sm font-medium text-gray-400 mb-2">
                   Amount in USD
                 </label>
-                <Input
-                  type="number"
-                  placeholder="0.00"
-                  value={buyAmountUSD}
-                  onChange={(e) => {
-                    setBuyAmountUSD(e.target.value)
-                    const amount = parseFloat(e.target.value)
-                    if (amount >= 1.00) {
-                      getSwapQuote(amount)
-                    } else {
-                      setQuoteData(null)
-                    }
-                  }}
-                  className="bg-gray-800 border-gray-700 text-white"
-                />
-                <p className="text-xs text-gray-500 mt-1">Minimum $10-20 USD - Buy fractional tokens</p>
+                <div className="relative">
+                  <Input
+                    type="number"
+                    placeholder="0.00"
+                    value={buyAmountUSD}
+                    onChange={(e) => {
+                      setBuyAmountUSD(e.target.value)
+                      const amount = parseFloat(e.target.value)
+                      if (amount >= 1.00) {
+                        getSwapQuote(amount)
+                      } else {
+                        setQuoteData(null)
+                      }
+                    }}
+                    className="bg-gray-800 border-gray-700 text-white pr-20"
+                  />
+                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-xs text-gray-400">
+                    Balance: ${solBalanceUSD.toFixed(2)}
+                  </div>
+                </div>
+                <p className="text-xs text-gray-500 mt-1">Minimum $10 USD - Buy fractional tokens</p>
                 
                 {/* Quick Amount Buttons */}
-                <div className="grid grid-cols-3 gap-2 mt-3">
-                  {[25, 50, 100, 250, 500, 1000].map((amount) => (
-                    <Button
-                      key={amount}
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        setBuyAmountUSD(amount.toString())
-                        getSwapQuote(amount)
-                      }}
-                      className="h-8 text-xs"
-                    >
-                      ${amount}
-                    </Button>
-                  ))}
+                <div className="grid grid-cols-4 gap-2 mt-3">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setBuyAmountUSD('10')
+                      getSwapQuote(10)
+                    }}
+                    className="h-8 text-xs"
+                  >
+                    $10
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setBuyAmountUSD('20')
+                      getSwapQuote(20)
+                    }}
+                    className="h-8 text-xs"
+                  >
+                    $20
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const maxAmount = Math.floor(solBalanceUSD * 0.99) // Leave some for fees
+                      setBuyAmountUSD(maxAmount.toString())
+                      getSwapQuote(maxAmount)
+                    }}
+                    className="h-8 text-xs"
+                  >
+                    $Max
+                  </Button>
                 </div>
               </div>
               
@@ -433,21 +493,8 @@ export default function StocksPage() {
                           {formatTokenAmount(getEstimatedTokenAmount())} {selectedToken.symbol}
                         </span>
                       </div>
-                      <div className="flex items-center justify-between p-3 bg-gray-800 rounded-lg">
-                        <span className="text-gray-400">Price Impact</span>
-                        <span className="font-semibold text-white">
-                          {parseFloat(quoteData.priceImpactPct || '0').toFixed(2)}%
-                        </span>
-                      </div>
                     </div>
                   )}
-                  
-                  <div className="flex items-center justify-between p-3 bg-gray-800 rounded-lg">
-                    <span className="text-gray-400">Your SOL Balance</span>
-                    <span className="font-semibold text-white">
-                      {solBalance.toFixed(4)} SOL
-                    </span>
-                  </div>
                 </div>
               )}
               
@@ -483,6 +530,8 @@ export default function StocksPage() {
         </div>
       )}
 
+      </div>
+
       <Navigation />
 
       {/* Success Modal */}
@@ -498,7 +547,22 @@ export default function StocksPage() {
           tokenPrice={successData.tokenPrice}
         />
       )}
-      </div>
+
+      {/* Processing Modal */}
+      {showProcessingModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50">
+          <div className="bg-gray-900 rounded-2xl p-8 max-w-sm w-full text-center">
+            <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-usdt mx-auto mb-6"></div>
+            <h3 className="text-xl font-bold text-white mb-2">Processing Transaction</h3>
+            <p className="text-gray-400 mb-4">{processingMessage}</p>
+            <div className="flex items-center justify-center space-x-2">
+              <div className="w-2 h-2 bg-usdt rounded-full animate-bounce"></div>
+              <div className="w-2 h-2 bg-usdt rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+              <div className="w-2 h-2 bg-usdt rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+            </div>
+          </div>
+        </div>
+      )}
     </WalletCheck>
   )
 } 

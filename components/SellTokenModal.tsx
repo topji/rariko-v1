@@ -6,6 +6,7 @@ import { TrendingUp, TrendingDown, DollarSign, Loader2, X } from 'lucide-react'
 import { useSwapV2 } from '../hooks/useSwapV2'
 import { useDynamicWallet } from '../hooks/useDynamicWallet'
 import { NATIVE_MINT } from '@solana/spl-token'
+import { orderApi } from '../lib/api'
 
 interface TokenData {
   symbol: string
@@ -30,9 +31,11 @@ export default function SellTokenModal({ isOpen, onClose, token, onSuccess }: Se
   const [quoteData, setQuoteData] = useState<any>(null)
   const [isGettingQuote, setIsGettingQuote] = useState(false)
   const [solPrice, setSolPrice] = useState<number>(0)
+  const [showProcessingModal, setShowProcessingModal] = useState(false)
+  const [processingMessage, setProcessingMessage] = useState('')
   
   const { sellToken, getQuote, isLoading: isSwapLoading } = useSwapV2()
-  const { isConnected } = useDynamicWallet()
+  const { isConnected, walletAddress } = useDynamicWallet()
 
   // Fetch SOL price
   const fetchSolPrice = async () => {
@@ -96,12 +99,46 @@ export default function SellTokenModal({ isOpen, onClose, token, onSuccess }: Se
       return
     }
     
+    // Show processing modal
+    setShowProcessingModal(true)
+    setProcessingMessage('Creating sell order...')
+    
     try {
+      if (!walletAddress) {
+        alert('Wallet not connected')
+        return
+      }
+
+      // Create backend order first
+      const orderData = {
+        walletAddress,
+        tokenSymbol: token.symbol,
+        tokenName: token.name,
+        tokenContractAddress: token.contractAddress,
+        orderType: 'sell',
+        tokenAmount,
+        usdValue,
+        solAmount,
+        feeAmount,
+        status: 'pending'
+      }
+      
+      const orderResponse = await orderApi.createSellOrder(orderData)
+      setProcessingMessage('Processing transaction...')
+      
       // Convert token amount to raw amount using the correct decimals
       const rawAmount = Math.floor(tokenAmount * Math.pow(10, token.decimals))
       
       const result = await sellToken(token.contractAddress, rawAmount)
       
+      // Update order status to completed
+      await orderApi.completeOrder(orderResponse.order.id, {
+        txId: result.txId,
+        tokenAmount,
+        feeInUSD: result.feeInUSD
+      })
+      
+      setShowProcessingModal(false)
       onSuccess({
         txId: result.txId,
         tokenAmount,
@@ -109,6 +146,7 @@ export default function SellTokenModal({ isOpen, onClose, token, onSuccess }: Se
       })
     } catch (error) {
       console.error('Sell failed:', error)
+      setShowProcessingModal(false)
       alert('Transaction failed. Please try again.')
     }
   }
@@ -269,21 +307,9 @@ export default function SellTokenModal({ isOpen, onClose, token, onSuccess }: Se
               {quoteData && !isGettingQuote && (
                 <div className="space-y-2">
                   <div className="flex items-center justify-between p-3 bg-gray-800 rounded-lg">
-                    <span className="text-gray-400">Estimated Output</span>
-                    <span className="font-semibold text-white">
-                      {formatTokenAmount(getEstimatedSolAmount())} SOL
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between p-3 bg-gray-800 rounded-lg">
                     <span className="text-gray-400">Estimated USD Value</span>
                     <span className="font-semibold text-white">
                       ${getEstimatedUsdAmount().toFixed(2)}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between p-3 bg-gray-800 rounded-lg">
-                    <span className="text-gray-400">Price Impact</span>
-                    <span className="font-semibold text-white">
-                      {parseFloat(quoteData.priceImpactPct || '0').toFixed(2)}%
                     </span>
                   </div>
                 </div>
@@ -316,6 +342,22 @@ export default function SellTokenModal({ isOpen, onClose, token, onSuccess }: Se
           </div>
         </div>
       </Card>
+
+      {/* Processing Modal */}
+      {showProcessingModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50">
+          <div className="bg-gray-900 rounded-2xl p-8 max-w-sm w-full text-center">
+            <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-usdt mx-auto mb-6"></div>
+            <h3 className="text-xl font-bold text-white mb-2">Processing Transaction</h3>
+            <p className="text-gray-400 mb-4">{processingMessage}</p>
+            <div className="flex items-center justify-center space-x-2">
+              <div className="w-2 h-2 bg-usdt rounded-full animate-bounce"></div>
+              <div className="w-2 h-2 bg-usdt rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+              <div className="w-2 h-2 bg-usdt rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 } 
