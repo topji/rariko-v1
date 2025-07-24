@@ -30,6 +30,7 @@ import { orderApi } from '../../lib/api'
 import SellTokenModal from '../../components/SellTokenModal'
 import TransactionSuccessModal from '../../components/TransactionSuccessModal'
 import { usePortfolio } from '../../hooks/usePortfolio'
+import WalletCheck from '../../components/WalletCheck';
 
 export default function PortfolioPage() {
   const { 
@@ -110,8 +111,9 @@ export default function PortfolioPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white pb-20">
-      {/* Header */}
+    <WalletCheck>
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black">
+        {/* Header */}
               <PageHeader showProfile={true} />
 
       <div className="px-4 py-6 space-y-6">
@@ -284,5 +286,6 @@ export default function PortfolioPage() {
         </div>
       )}
     </div>
+    </WalletCheck>
   )
 } 

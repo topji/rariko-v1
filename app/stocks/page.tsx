@@ -12,6 +12,7 @@ import { useDynamicWallet } from '../../hooks/useDynamicWallet'
 import { NATIVE_MINT } from '@solana/spl-token'
 import TransactionSuccessModal from '../../components/TransactionSuccessModal'
 import { orderApi } from '../../lib/api'
+import WalletCheck from '../../components/WalletCheck';
 
 // Token addresses
 const TOKEN_ADDRESSES = [
@@ -284,279 +285,281 @@ export default function StocksPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white pb-20">
-      {/* Header */}
-      <PageHeader showProfile={true} 
-        showRefresh={true}
-        onRefresh={() => fetchData(true)}
-        isRefreshing={isRefreshing}
-      />
+    <WalletCheck>
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black">
+        {/* Header */}
+        <PageHeader showProfile={true} 
+          showRefresh={true}
+          onRefresh={() => fetchData(true)}
+          isRefreshing={isRefreshing}
+        />
 
-      <div className="px-4 py-6 space-y-6">
-        {/* Loading State */}
-        {isLoading && (
-          <div className="flex items-center justify-center py-12">
-            <div className="flex items-center space-x-2">
-              <RefreshCw className="w-5 h-5 animate-spin text-usdt" />
-              <span className="text-gray-400">Loading token data...</span>
+        <div className="px-4 py-6 space-y-6">
+          {/* Loading State */}
+          {isLoading && (
+            <div className="flex items-center justify-center py-12">
+              <div className="flex items-center space-x-2">
+                <RefreshCw className="w-5 h-5 animate-spin text-usdt" />
+                <span className="text-gray-400">Loading token data...</span>
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Token Data */}
-        {!isLoading && tokensData && (
-          <div className="space-y-3">
-            {tokensData
-              .filter(token => parseFloat(token.priceUsd) > 0) // Filter out tokens with zero price
-              .map((token, index) => (
-              <Card key={token.contractAddress} className="p-4 hover:bg-gray-800/50 transition-colors">
-              <div className="flex items-center justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 bg-gradient-to-br from-usdt to-green-600 rounded-xl flex items-center justify-center">
-                        <span className="text-white font-bold text-sm">{token.symbol.slice(0, 2)}</span>
-                    </div>
-                    <div>
-                        <h3 className="font-semibold text-lg text-white">{token.symbol}</h3>
-                        <p className="text-gray-400 text-sm">{token.name}</p>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="text-right">
-                  <div className="text-lg font-semibold text-white">
-                      ${formatPrice(token.priceUsd)}
-                  </div>
-                  <div className={`flex items-center gap-1 text-sm ${
-                      token.priceChange24h >= 0 ? 'text-green-400' : 'text-red-400'
-                  }`}>
-                      {token.priceChange24h >= 0 ? (
-                      <TrendingUp className="w-3 h-3" />
-                    ) : (
-                      <TrendingDown className="w-3 h-3" />
-                    )}
-                      {token.priceChange24h >= 0 ? '+' : ''}{token.priceChange24h.toFixed(2)}%
-                  </div>
-                </div>
-              </div>
-              
-              <div className="mt-4 flex items-center justify-between text-sm text-gray-400">
-                <div className="flex items-center gap-1">
-                  <Volume2 className="w-3 h-3" />
-                    <span>24h Vol: {formatVolume(token.volume24h)}</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <DollarSign className="w-3 h-3" />
-                    <span>Contract: {token.contractAddress.slice(0, 8)}...{token.contractAddress.slice(-8)}</span>
-                </div>
-              </div>
-              
-              <Button
-                  onClick={() => setSelectedToken(token)}
-                className="w-full mt-3 bg-usdt hover:bg-primary-600"
-                  disabled={token.error !== undefined}
-              >
-                  {token.error ? 'Data Unavailable' : `Buy ${token.symbol}`}
-              </Button>
-            </Card>
-            ))}
-          </div>
-        )}
-
-        {/* Error State */}
-        {!isLoading && (!tokensData || tokensData.length === 0) && (
-          <div className="text-center py-12">
-            <p className="text-gray-400">Failed to load token data. Please try refreshing.</p>
-          </div>
-        )}
-      </div>
-
-      {/* Buy Modal */}
-      {selectedToken && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <Card className="w-full max-w-md p-6">
-            <h2 className="text-xl font-bold mb-4 text-white">Buy {selectedToken.symbol}</h2>
-            
-            {!isConnected && (
-              <div className="mb-4 p-3 bg-red-900/20 border border-red-500/30 rounded-lg">
-                <p className="text-red-400 text-sm">Please connect your wallet to buy tokens</p>
-              </div>
-            )}
-            
-            <div className="space-y-4">
-              <div className="flex items-center justify-between p-3 bg-gray-800 rounded-lg">
-                <span className="text-gray-400">Current Price</span>
-                <span className="font-semibold text-white">${formatPrice(selectedToken.priceUsd)}</span>
-              </div>
-              
-              <div className="flex items-center justify-between p-3 bg-gray-800 rounded-lg">
-                <span className="text-gray-400">24h Change</span>
-                <span className={`font-semibold ${
-                  selectedToken.priceChange24h >= 0 ? 'text-green-400' : 'text-red-400'
-                }`}>
-                  {selectedToken.priceChange24h >= 0 ? '+' : ''}{selectedToken.priceChange24h.toFixed(2)}%
-                </span>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-400 mb-2">
-                  Amount in USD
-                </label>
-                <div className="relative">
-                  <Input
-                    type="number"
-                    placeholder="0.00"
-                    value={buyAmountUSD}
-                    onChange={(e) => {
-                      setBuyAmountUSD(e.target.value)
-                      const amount = parseFloat(e.target.value)
-                      if (amount >= 1.00) {
-                        getSwapQuote(amount)
-                      } else {
-                        setQuoteData(null)
-                      }
-                    }}
-                    className="bg-gray-800 border-gray-700 text-white pr-20"
-                  />
-                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-xs text-gray-400">
-                    Balance: ${solBalanceUSD.toFixed(2)}
-                  </div>
-                </div>
-                <p className="text-xs text-gray-500 mt-1">Minimum $10 USD - Buy fractional tokens</p>
-                
-                {/* Quick Amount Buttons */}
-                <div className="grid grid-cols-4 gap-2 mt-3">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setBuyAmountUSD('10')
-                      getSwapQuote(10)
-                    }}
-                    className="h-8 text-xs"
-                  >
-                    $10
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setBuyAmountUSD('20')
-                      getSwapQuote(20)
-                    }}
-                    className="h-8 text-xs"
-                  >
-                    $20
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      const maxAmount = Math.floor(solBalanceUSD * 0.99) // Leave some for fees
-                      setBuyAmountUSD(maxAmount.toString())
-                      getSwapQuote(maxAmount)
-                    }}
-                    className="h-8 text-xs"
-                  >
-                    $Max
-                  </Button>
-                </div>
-              </div>
-              
-              {buyAmountUSD && (
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between p-3 bg-gray-800 rounded-lg">
-                    <span className="text-gray-400">Platform Fee (1%)</span>
-                    <span className="font-semibold text-white text-yellow-400">
-                      ${(parseFloat(buyAmountUSD) * 0.01).toFixed(2)}
-                    </span>
-                  </div>
-                  
-                  {isGettingQuote && (
-                    <div className="flex items-center justify-center p-3 bg-gray-800 rounded-lg">
-                      <Loader2 className="w-4 h-4 animate-spin text-usdt mr-2" />
-                      <span className="text-gray-400">Getting quote...</span>
-                    </div>
-                  )}
-                  
-                  {quoteData && !isGettingQuote && (
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between p-3 bg-gray-800 rounded-lg">
-                        <span className="text-gray-400">Estimated Output</span>
-                        <span className="font-semibold text-white">
-                          {formatTokenAmount(getEstimatedTokenAmount())} {selectedToken.symbol}
-                        </span>
+          {/* Token Data */}
+          {!isLoading && tokensData && (
+            <div className="space-y-3">
+              {tokensData
+                .filter(token => parseFloat(token.priceUsd) > 0) // Filter out tokens with zero price
+                .map((token, index) => (
+                <Card key={token.contractAddress} className="p-4 hover:bg-gray-800/50 transition-colors">
+                <div className="flex items-center justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 bg-gradient-to-br from-usdt to-green-600 rounded-xl flex items-center justify-center">
+                          <span className="text-white font-bold text-sm">{token.symbol.slice(0, 2)}</span>
+                      </div>
+                      <div>
+                          <h3 className="font-semibold text-lg text-white">{token.symbol}</h3>
+                          <p className="text-gray-400 text-sm">{token.name}</p>
                       </div>
                     </div>
-                  )}
+                  </div>
+                  
+                  <div className="text-right">
+                    <div className="text-lg font-semibold text-white">
+                        ${formatPrice(token.priceUsd)}
+                    </div>
+                    <div className={`flex items-center gap-1 text-sm ${
+                        token.priceChange24h >= 0 ? 'text-green-400' : 'text-red-400'
+                    }`}>
+                        {token.priceChange24h >= 0 ? (
+                        <TrendingUp className="w-3 h-3" />
+                      ) : (
+                        <TrendingDown className="w-3 h-3" />
+                      )}
+                        {token.priceChange24h >= 0 ? '+' : ''}{token.priceChange24h.toFixed(2)}%
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="mt-4 flex items-center justify-between text-sm text-gray-400">
+                  <div className="flex items-center gap-1">
+                    <Volume2 className="w-3 h-3" />
+                      <span>24h Vol: {formatVolume(token.volume24h)}</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <DollarSign className="w-3 h-3" />
+                      <span>Contract: {token.contractAddress.slice(0, 8)}...{token.contractAddress.slice(-8)}</span>
+                  </div>
+                </div>
+                
+                <Button
+                    onClick={() => setSelectedToken(token)}
+                  className="w-full mt-3 bg-usdt hover:bg-primary-600"
+                    disabled={token.error !== undefined}
+                >
+                    {token.error ? 'Data Unavailable' : `Buy ${token.symbol}`}
+                </Button>
+              </Card>
+              ))}
+            </div>
+          )}
+
+          {/* Error State */}
+          {!isLoading && (!tokensData || tokensData.length === 0) && (
+            <div className="text-center py-12">
+              <p className="text-gray-400">Failed to load token data. Please try refreshing.</p>
+            </div>
+          )}
+        </div>
+
+        {/* Buy Modal */}
+        {selectedToken && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <Card className="w-full max-w-md p-6">
+              <h2 className="text-xl font-bold mb-4 text-white">Buy {selectedToken.symbol}</h2>
+              
+              {!isConnected && (
+                <div className="mb-4 p-3 bg-red-900/20 border border-red-500/30 rounded-lg">
+                  <p className="text-red-400 text-sm">Please connect your wallet to buy tokens</p>
                 </div>
               )}
               
-              <div className="flex gap-3">
-                <Button
-                  onClick={() => {
-                    setSelectedToken(null)
-                    setBuyAmountUSD('')
-                    setQuoteData(null)
-                  }}
-                  variant="outline"
-                  className="flex-1"
-                >
-                  Cancel
-                </Button>
-                <Button
-                  onClick={handleBuyToken}
-                  disabled={!buyAmountUSD || parseFloat(buyAmountUSD) < 1.00 || isSwapLoading || !isConnected}
-                  className="flex-1 bg-usdt hover:bg-primary-600"
-                >
-                  {isSwapLoading ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                      Processing...
-                    </>
-                  ) : (
-                    'Buy Tokens'
-                  )}
-                </Button>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between p-3 bg-gray-800 rounded-lg">
+                  <span className="text-gray-400">Current Price</span>
+                  <span className="font-semibold text-white">${formatPrice(selectedToken.priceUsd)}</span>
+                </div>
+                
+                <div className="flex items-center justify-between p-3 bg-gray-800 rounded-lg">
+                  <span className="text-gray-400">24h Change</span>
+                  <span className={`font-semibold ${
+                    selectedToken.priceChange24h >= 0 ? 'text-green-400' : 'text-red-400'
+                  }`}>
+                    {selectedToken.priceChange24h >= 0 ? '+' : ''}{selectedToken.priceChange24h.toFixed(2)}%
+                  </span>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-400 mb-2">
+                    Amount in USD
+                  </label>
+                  <div className="relative">
+                    <Input
+                      type="number"
+                      placeholder="0.00"
+                      value={buyAmountUSD}
+                      onChange={(e) => {
+                        setBuyAmountUSD(e.target.value)
+                        const amount = parseFloat(e.target.value)
+                        if (amount >= 1.00) {
+                          getSwapQuote(amount)
+                        } else {
+                          setQuoteData(null)
+                        }
+                      }}
+                      className="bg-gray-800 border-gray-700 text-white pr-20"
+                    />
+                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-xs text-gray-400">
+                      Balance: ${solBalanceUSD.toFixed(2)}
+                    </div>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">Minimum $10 USD - Buy fractional tokens</p>
+                  
+                  {/* Quick Amount Buttons */}
+                  <div className="grid grid-cols-4 gap-2 mt-3">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setBuyAmountUSD('10')
+                        getSwapQuote(10)
+                      }}
+                      className="h-8 text-xs"
+                    >
+                      $10
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setBuyAmountUSD('20')
+                        getSwapQuote(20)
+                      }}
+                      className="h-8 text-xs"
+                    >
+                      $20
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        const maxAmount = Math.floor(solBalanceUSD * 0.99) // Leave some for fees
+                        setBuyAmountUSD(maxAmount.toString())
+                        getSwapQuote(maxAmount)
+                      }}
+                      className="h-8 text-xs"
+                    >
+                      $Max
+                    </Button>
+                  </div>
+                </div>
+                
+                {buyAmountUSD && (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between p-3 bg-gray-800 rounded-lg">
+                      <span className="text-gray-400">Platform Fee (1%)</span>
+                      <span className="font-semibold text-white text-yellow-400">
+                        ${(parseFloat(buyAmountUSD) * 0.01).toFixed(2)}
+                      </span>
+                    </div>
+                    
+                    {isGettingQuote && (
+                      <div className="flex items-center justify-center p-3 bg-gray-800 rounded-lg">
+                        <Loader2 className="w-4 h-4 animate-spin text-usdt mr-2" />
+                        <span className="text-gray-400">Getting quote...</span>
+                      </div>
+                    )}
+                    
+                    {quoteData && !isGettingQuote && (
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between p-3 bg-gray-800 rounded-lg">
+                          <span className="text-gray-400">Estimated Output</span>
+                          <span className="font-semibold text-white">
+                            {formatTokenAmount(getEstimatedTokenAmount())} {selectedToken.symbol}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+                
+                <div className="flex gap-3">
+                  <Button
+                    onClick={() => {
+                      setSelectedToken(null)
+                      setBuyAmountUSD('')
+                      setQuoteData(null)
+                    }}
+                    variant="outline"
+                    className="flex-1"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={handleBuyToken}
+                    disabled={!buyAmountUSD || parseFloat(buyAmountUSD) < 1.00 || isSwapLoading || !isConnected}
+                    className="flex-1 bg-usdt hover:bg-primary-600"
+                  >
+                    {isSwapLoading ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                        Processing...
+                      </>
+                    ) : (
+                      'Buy Tokens'
+                    )}
+                  </Button>
+                </div>
+              </div>
+            </Card>
+          </div>
+        )}
+
+
+
+        <Navigation />
+
+        {/* Success Modal */}
+        {showSuccessModal && successData && (
+          <TransactionSuccessModal
+            isOpen={showSuccessModal}
+            onClose={() => setShowSuccessModal(false)}
+            txId={successData.txId}
+            tokenSymbol={successData.tokenSymbol}
+            tokenAmount={successData.tokenAmount}
+            usdAmount={successData.usdAmount}
+            feeInUSD={successData.feeInUSD}
+            tokenPrice={successData.tokenPrice}
+          />
+        )}
+
+        {/* Processing Modal */}
+        {showProcessingModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50">
+            <div className="bg-gray-900 rounded-2xl p-8 max-w-sm w-full text-center">
+              <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-usdt mx-auto mb-6"></div>
+              <h3 className="text-xl font-bold text-white mb-2">Processing Transaction</h3>
+              <p className="text-gray-400 mb-4">{processingMessage}</p>
+              <div className="flex items-center justify-center space-x-2">
+                <div className="w-2 h-2 bg-usdt rounded-full animate-bounce"></div>
+                <div className="w-2 h-2 bg-usdt rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                <div className="w-2 h-2 bg-usdt rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
               </div>
             </div>
-          </Card>
-        </div>
-      )}
-
-
-
-      <Navigation />
-
-      {/* Success Modal */}
-      {showSuccessModal && successData && (
-        <TransactionSuccessModal
-          isOpen={showSuccessModal}
-          onClose={() => setShowSuccessModal(false)}
-          txId={successData.txId}
-          tokenSymbol={successData.tokenSymbol}
-          tokenAmount={successData.tokenAmount}
-          usdAmount={successData.usdAmount}
-          feeInUSD={successData.feeInUSD}
-          tokenPrice={successData.tokenPrice}
-        />
-      )}
-
-      {/* Processing Modal */}
-      {showProcessingModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50">
-          <div className="bg-gray-900 rounded-2xl p-8 max-w-sm w-full text-center">
-            <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-usdt mx-auto mb-6"></div>
-            <h3 className="text-xl font-bold text-white mb-2">Processing Transaction</h3>
-            <p className="text-gray-400 mb-4">{processingMessage}</p>
-            <div className="flex items-center justify-center space-x-2">
-              <div className="w-2 h-2 bg-usdt rounded-full animate-bounce"></div>
-              <div className="w-2 h-2 bg-usdt rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-              <div className="w-2 h-2 bg-usdt rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-            </div>
           </div>
-        </div>
-      )}
-    </div>
+        )}
+      </div>
+    </WalletCheck>
   )
 } 
