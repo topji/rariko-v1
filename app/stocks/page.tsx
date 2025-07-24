@@ -217,7 +217,7 @@ export default function StocksPage() {
         walletAddress,
         tokenSymbol: selectedToken.symbol,
         tokenAddress: selectedToken.contractAddress,
-        amount: usdAmount,
+        amount: usdAmount, // This is what backend validation expects
         price: parseFloat(selectedToken.priceUsd),
         totalValue: usdAmount,
         transactionHash: result.txId,

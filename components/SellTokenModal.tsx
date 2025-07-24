@@ -120,7 +120,7 @@ export default function SellTokenModal({ isOpen, onClose, token, onSuccess }: Se
         walletAddress,
         tokenSymbol: token.symbol,
         tokenAddress: token.contractAddress,
-        amount: tokenAmount,
+        amount: tokenAmount, // This is what backend validation expects
         price: parseFloat(token.priceUsd),
         totalValue: usdValue,
         transactionHash: result.txId,
