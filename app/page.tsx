@@ -48,6 +48,7 @@ export default function DashboardPage() {
     totalVolume: 0,
     totalProfitLoss: 0,
     profitLossPercent: 0,
+    totalInvested: 0,
     ordersCount: 0,
     recentOrders: [] as any[]
   })
@@ -74,35 +75,98 @@ export default function DashboardPage() {
           setUserProfile(profile);
         }
 
-        // Fetch user orders
-        const ordersResponse = await orderApi.getUserOrders(walletAddress, { limit: 5 });
+        // Fetch all user orders to calculate portfolio
+        const ordersResponse = await orderApi.getUserOrders(walletAddress, { limit: 100 });
         const orders = ordersResponse.orders || [];
 
         // Fetch user volume
         const volumeResponse = await orderApi.getUserVolume(walletAddress);
-        const totalVolume = volumeResponse.totalVolume || 0;
+        const totalVolume = volumeResponse.volume?.totalVolume || 0;
 
-        // Calculate portfolio value and profit/loss (simplified calculation)
-        const portfolioValue = solBalanceUSD + (totalVolume * 0.1); // Assuming 10% of volume as portfolio value
-        const totalProfitLoss = portfolioValue - totalVolume;
-        const profitLossPercent = totalVolume > 0 ? (totalProfitLoss / totalVolume) * 100 : 0;
+        // Calculate portfolio value and profit/loss from actual orders
+        const completedOrders = orders.filter((order: any) => order.status === 'COMPLETED');
+        
+        // Group orders by token symbol to calculate holdings
+        const tokenHoldings: any = {};
+        
+        completedOrders.forEach((order: any) => {
+          const symbol = order.tokenSymbol;
+          if (!tokenHoldings[symbol]) {
+            tokenHoldings[symbol] = {
+              totalBought: 0,
+              totalSold: 0,
+              totalBoughtValue: 0,
+              totalSoldValue: 0,
+              averageBuyPrice: 0
+            };
+          }
+          
+          if (order.orderType === 'BUY') {
+            tokenHoldings[symbol].totalBought += order.amount;
+            tokenHoldings[symbol].totalBoughtValue += order.totalValue;
+          } else if (order.orderType === 'SELL') {
+            tokenHoldings[symbol].totalSold += order.amount;
+            tokenHoldings[symbol].totalSoldValue += order.totalValue;
+          }
+        });
+
+        // Calculate current holdings and portfolio value
+        let totalPortfolioValue = solBalanceUSD; // Start with SOL balance
+        let totalInvested = 0;
+        let totalCurrentValue = 0;
+
+        Object.keys(tokenHoldings).forEach(symbol => {
+          const holding = tokenHoldings[symbol];
+          const currentBalance = holding.totalBought - holding.totalSold;
+          
+          if (currentBalance > 0) {
+            // Calculate average buy price
+            const avgBuyPrice = holding.totalBoughtValue / holding.totalBought;
+            holding.averageBuyPrice = avgBuyPrice;
+            
+            // Get current price from token data (we'll need to fetch this)
+            // For now, use average buy price as approximation
+            const currentPrice = avgBuyPrice; // This should be fetched from token price API
+            
+            const currentValue = currentBalance * currentPrice;
+            totalCurrentValue += currentValue;
+            totalInvested += holding.totalBoughtValue;
+          }
+        });
+
+        // Add current token balances from wallet
+        if (tokenBalances) {
+          tokenBalances.forEach(token => {
+            if (token.symbol !== 'SOL') {
+              totalPortfolioValue += token.marketValue || 0;
+            }
+          });
+        }
+
+        // Calculate profit/loss
+        const totalProfitLoss = totalPortfolioValue - totalInvested;
+        const profitLossPercent = totalInvested > 0 ? (totalProfitLoss / totalInvested) * 100 : 0;
+
+        // Get recent orders for display
+        const recentOrders = orders.slice(0, 5).map((order: any) => ({
+          id: order._id || order.id,
+          type: order.orderType?.toLowerCase() || order.type,
+          symbol: order.tokenSymbol,
+          shares: order.amount,
+          price: order.price,
+          total: order.totalValue,
+          status: order.status?.toLowerCase() || order.status,
+          timestamp: new Date(order.createdAt)
+        }));
 
         setDashboardData({
-          portfolioValue,
+          portfolioValue: totalPortfolioValue,
           totalVolume,
           totalProfitLoss,
           profitLossPercent,
+          totalInvested,
           ordersCount: orders.length,
-          recentOrders: orders.map((order: any) => ({
-            id: order.id,
-            type: order.type,
-            symbol: order.symbol,
-            shares: order.quantity,
-            price: order.price,
-            total: order.total,
-            status: order.status,
-            timestamp: new Date(order.createdAt)
-          }))
+          recentOrders
         });
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
@@ -112,6 +176,7 @@ export default function DashboardPage() {
           totalVolume: 0,
           totalProfitLoss: 0,
           profitLossPercent: 0,
+          totalInvested: 0,
           ordersCount: 0,
           recentOrders: []
         });
@@ -121,7 +186,7 @@ export default function DashboardPage() {
     };
 
     fetchDashboardData();
-  }, [walletAddress, solBalanceUSD, getProfile]);
+  }, [walletAddress, solBalanceUSD, tokenBalances, getProfile]);
 
   const getOrderIcon = (type: 'buy' | 'sell') => {
     if (type === 'buy') {
@@ -291,69 +356,74 @@ export default function DashboardPage() {
               </div>
             </Card>
 
-            {/* Orders Count */}
+            {/* Total Invested */}
             <Card className="p-4">
               <div className="flex items-center justify-between mb-2">
-                <div className="w-8 h-8 bg-orange-600 rounded-lg flex items-center justify-center">
-                  <ShoppingCart className="w-4 h-4 text-white" />
+                <div className="w-8 h-8 bg-purple-600 rounded-lg flex items-center justify-center">
+                  <TrendingDown className="w-4 h-4 text-white" />
                 </div>
-                <span className="text-xs text-gray-400">Orders</span>
+                <span className="text-xs text-gray-400">Total Invested</span>
               </div>
-              <div className="text-xl font-bold text-white">{dashboardData.ordersCount}</div>
-              <div className="text-sm text-gray-400">Total orders</div>
+              <div className="text-xl font-bold text-white">${dashboardData.totalInvested.toLocaleString()}</div>
+              <div className="text-sm text-gray-400">Capital deployed</div>
             </Card>
           </motion.div>
 
-          {/* Recent Orders */}
+          {/* Orders Section */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.2 }}
+            className="space-y-4"
           >
-            <div className="flex items-center justify-between mb-4">
+            {/* Orders Header */}
+            <div className="flex items-center justify-between">
               <h3 className="text-lg font-semibold text-white">Recent Orders</h3>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => router.push('/portfolio')}
-              >
-                View All
-              </Button>
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 bg-orange-600 rounded-lg flex items-center justify-center">
+                  <ShoppingCart className="w-3 h-3 text-white" />
+                </div>
+                <span className="text-sm text-gray-400">{dashboardData.ordersCount} total orders</span>
+              </div>
             </div>
 
-            <div className="space-y-3">
-              {dashboardData.recentOrders.map((order) => (
-                <Card key={order.id} className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-10 h-10 bg-gray-700 rounded-xl flex items-center justify-center">
+            {/* Recent Orders List */}
+            {dashboardData.recentOrders.length > 0 ? (
+              <div className="space-y-3">
+                {dashboardData.recentOrders.map((order) => (
+                  <Card key={order.id} className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
                         {getOrderIcon(order.type)}
+                        <div>
+                          <div className="font-semibold text-white">
+                            {order.type === 'buy' ? 'Bought' : 'Sold'} {order.shares} {order.symbol}
+                          </div>
+                          <div className="text-sm text-gray-400">
+                            ${order.price.toFixed(4)} per token
+                          </div>
+                        </div>
                       </div>
-                      <div>
-                        <p className="font-medium text-white">
-                          {order.type === 'buy' ? 'Bought' : 'Sold'} {order.shares} {order.symbol}
-                        </p>
-                        <p className="text-sm text-gray-400">
-                          @${order.price} per share
-                        </p>
-                      </div>
-                    </div>
-                    
-                    <div className="text-right">
-                      <p className="font-semibold text-white">
-                        ${order.total.toFixed(2)}
-                      </p>
-                      <div className="flex items-center justify-end space-x-1 mt-1">
-                        {getStatusIcon(order.status)}
-                        <span className="text-xs text-gray-400">
-                          {formatTimeAgo(order.timestamp)}
-                        </span>
+                      <div className="text-right">
+                        <div className="font-semibold text-white">
+                          ${order.total.toFixed(2)}
+                        </div>
+                        <div className="flex items-center gap-1 text-sm text-gray-400">
+                          {getStatusIcon(order.status)}
+                          <span>{formatTimeAgo(order.timestamp)}</span>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </Card>
-              ))}
-            </div>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <Card className="p-6 text-center">
+                <ShoppingCart className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+                <p className="text-gray-400">No orders yet</p>
+                <p className="text-sm text-gray-500">Start trading to see your order history</p>
+              </Card>
+            )}
           </motion.div>
         </div>
         )}
