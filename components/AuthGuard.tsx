@@ -14,7 +14,8 @@ export function AuthGuard({ children }: AuthGuardProps) {
 
   useEffect(() => {
     if (!primaryWallet?.address) {
-      router.push('/onboarding')
+      // Redirect to home page where WalletCheck will handle the flow
+      router.push('/')
     }
   }, [primaryWallet?.address, router])
 

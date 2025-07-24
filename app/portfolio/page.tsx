@@ -10,6 +10,7 @@ import { usePortfolio } from '../../hooks/usePortfolio'
 import { useRouter } from 'next/navigation'
 import SellTokenModal from '../../components/SellTokenModal'
 import TransactionSuccessModal from '../../components/TransactionSuccessModal'
+import WalletCheck from '../../components/WalletCheck'
 
 export default function PortfolioPage() {
   const { 
@@ -87,7 +88,8 @@ export default function PortfolioPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white pb-20">
+    <WalletCheck>
+      <div className="min-h-screen bg-gray-900 text-white pb-20">
       {/* Header */}
               <PageHeader showProfile={true} />
 
@@ -244,6 +246,7 @@ export default function PortfolioPage() {
           transactionType="sell"
         />
       )}
-    </div>
+      </div>
+    </WalletCheck>
   )
 } 

@@ -29,6 +29,7 @@ import {
 import { PageHeader } from '../../components/PageHeader'
 import QRCode from 'qrcode'
 import { useUserApi } from '../../hooks/useUserApi'
+import WalletCheck from '../../components/WalletCheck'
 
 // Type definitions
 interface UserData {
@@ -223,7 +224,8 @@ export default function ProfilePage() {
   if (!isConnected) return null
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white relative overflow-hidden">
+    <WalletCheck>
+      <div className="min-h-screen bg-gray-900 text-white relative overflow-hidden">
       {/* Grid overlay */}
       <div className="absolute inset-0 pointer-events-none z-0" aria-hidden>
         <svg width="100%" height="100%" className="opacity-5">
@@ -739,6 +741,7 @@ export default function ProfilePage() {
       )}
 
       <Navigation />
-    </div>
+      </div>
+    </WalletCheck>
   )
 } 
