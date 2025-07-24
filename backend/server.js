@@ -22,7 +22,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Database connection
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/rizz', {
+mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/rizz.money', {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 })
@@ -35,7 +35,7 @@ app.use('/api/orders', orderRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {
-  res.status(200).json({ status: 'OK', message: 'rizz Backend is running' });
+  res.status(200).json({ status: 'OK', message: 'rizz.money Backend is running' });
 });
 
 // Error handling middleware

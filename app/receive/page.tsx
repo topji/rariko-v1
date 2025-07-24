@@ -36,8 +36,8 @@ export default function ReceivePage() {
     
     const shareData = {
       title: 'Send me USDT',
-      text: `Send USDT to my rizz wallet: ${displayName || 'user'}`,
-      url: `https://rizz.app/pay/${displayName || walletAddress}`,
+      text: `Send USDT to my rizz.money wallet: ${displayName || 'user'}`,
+      url: `https://rizz.money.app/pay/${displayName || walletAddress}`,
     }
 
     try {

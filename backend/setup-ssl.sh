@@ -1,11 +1,11 @@
 #!/bin/bash
 
-# SSL Setup Script for Rizz Backend
+# SSL Setup Script for rizz.money Backend
 # This script sets up SSL certificate using Let's Encrypt
 
 set -e
 
-echo "🔒 Setting up SSL for Rizz Backend..."
+echo "🔒 Setting up SSL for rizz.money Backend..."
 
 # Check if running as root
 if [ "$EUID" -ne 0 ]; then
@@ -26,7 +26,7 @@ fi
 
 # Create a temporary nginx config for certbot
 echo "⚙️ Creating temporary nginx config..."
-cat > /etc/nginx/sites-available/rizz-backend-temp << EOF
+cat > /etc/nginx/sites-available/rizz.money-backend-temp << EOF
 server {
     listen 80;
     server_name $EC2_IP;
@@ -42,7 +42,7 @@ server {
 EOF
 
 # Enable the temporary site
-ln -sf /etc/nginx/sites-available/rizz-backend-temp /etc/nginx/sites-enabled/
+ln -sf /etc/nginx/sites-available/rizz.money-backend-temp /etc/nginx/sites-enabled/
 rm -f /etc/nginx/sites-enabled/default
 
 # Test nginx config
@@ -57,7 +57,7 @@ certbot --nginx -d $EC2_IP --non-interactive --agree-tos --email your-email@exam
 
 # Update nginx config with SSL
 echo "📝 Updating nginx config with SSL..."
-cat > /etc/nginx/sites-available/rizz-backend << EOF
+cat > /etc/nginx/sites-available/rizz.money-backend << EOF
 # HTTP to HTTPS redirect
 server {
     listen 80;
@@ -134,14 +134,14 @@ server {
     }
 
     # Logging
-    access_log /var/log/nginx/rizz-backend-access.log;
-    error_log /var/log/nginx/rizz-backend-error.log;
+    access_log /var/log/nginx/rizz.money-backend-access.log;
+    error_log /var/log/nginx/rizz.money-backend-error.log;
 }
 EOF
 
 # Enable the SSL site
-ln -sf /etc/nginx/sites-available/rizz-backend /etc/nginx/sites-enabled/
-rm -f /etc/nginx/sites-enabled/rizz-backend-temp
+ln -sf /etc/nginx/sites-available/rizz.money-backend /etc/nginx/sites-enabled/
+rm -f /etc/nginx/sites-enabled/rizz.money-backend-temp
 
 # Test nginx config
 nginx -t

@@ -1,7 +1,7 @@
 {
-  "name": "rizz - Tokenized US Stocks Wallet",
-  "short_name": "rizz",
-  "description": "Trade tokenized US stocks with your crypto wallet - rizz",
+  "name": "rizz.money - Tokenized US Stocks Wallet",
+  "short_name": "rizz.money",
+  "description": "Trade tokenized US stocks with your crypto wallet - rizz.money",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#000000",

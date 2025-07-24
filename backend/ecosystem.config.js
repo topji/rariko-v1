@@ -1,6 +1,6 @@
 module.exports = {
   apps: [{
-    name: 'rizz-backend',
+    name: 'rizz.money-backend',
     script: 'server.js',
     instances: 1,
     autorestart: true,

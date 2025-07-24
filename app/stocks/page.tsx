@@ -214,13 +214,15 @@ export default function StocksPage() {
       const orderData = {
         walletAddress,
         tokenSymbol: selectedToken.symbol,
-        tokenName: selectedToken.name,
-        tokenContractAddress: selectedToken.contractAddress,
-        orderType: 'buy',
-        usdAmount,
-        solAmount,
-        feeAmount,
-        status: 'pending'
+        tokenAddress: selectedToken.contractAddress,
+        amount: usdAmount,
+        price: parseFloat(selectedToken.priceUsd),
+        totalValue: usdAmount,
+        metadata: {
+          solAmount,
+          feeAmount,
+          timestamp: new Date()
+        }
       }
       
       const orderResponse = await orderApi.createBuyOrder(orderData)
@@ -231,7 +233,7 @@ export default function StocksPage() {
       
       // Update order status to completed
       await orderApi.completeOrder(orderResponse.order.id, {
-        txId: result.txId,
+        transactionHash: result.txId,
         tokenAmount: result.tokenAmount || 0,
         feeInUSD: result.feeInUSD,
         tokenPrice: result.tokenPrice || parseFloat(selectedToken.priceUsd)

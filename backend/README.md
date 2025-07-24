@@ -1,6 +1,6 @@
-# rizz Backend API
+# rizz.money Backend API
 
-A Node.js backend server for the rizz tokenized stock trading platform.
+A Node.js backend server for the rizz.money tokenized stock trading platform.
 
 ## Features
 

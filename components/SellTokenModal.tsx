@@ -113,14 +113,15 @@ export default function SellTokenModal({ isOpen, onClose, token, onSuccess }: Se
       const orderData = {
         walletAddress,
         tokenSymbol: token.symbol,
-        tokenName: token.name,
-        tokenContractAddress: token.contractAddress,
-        orderType: 'sell',
-        tokenAmount,
-        usdValue,
-        solAmount,
-        feeAmount,
-        status: 'pending'
+        tokenAddress: token.contractAddress,
+        amount: tokenAmount,
+        price: parseFloat(token.priceUsd),
+        totalValue: usdValue,
+        metadata: {
+          solAmount,
+          feeAmount,
+          timestamp: new Date()
+        }
       }
       
       const orderResponse = await orderApi.createSellOrder(orderData)
@@ -133,7 +134,7 @@ export default function SellTokenModal({ isOpen, onClose, token, onSuccess }: Se
       
       // Update order status to completed
       await orderApi.completeOrder(orderResponse.order.id, {
-        txId: result.txId,
+        transactionHash: result.txId,
         tokenAmount,
         feeInUSD: result.feeInUSD
       })

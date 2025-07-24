@@ -32,11 +32,11 @@
 3. Choose "Connect your application"
 4. Copy the connection string
 5. Replace `<password>` with your actual password
-6. Replace `<dbname>` with `rizz`
+6. Replace `<dbname>` with `rizz.money`
 
 ## Example Connection String:
 ```
-mongodb+srv://yourusername:yourpassword@cluster0.xxxxx.mongodb.net/rizz?retryWrites=true&w=majority
+mongodb+srv://yourusername:yourpassword@cluster0.xxxxx.mongodb.net/rizz.money?retryWrites=true&w=majority
 ```
 
 ## Step 6: Test Connection

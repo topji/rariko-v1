@@ -1,4 +1,4 @@
-# Railway Deployment Guide for rizz Backend
+# Railway Deployment Guide for rizz.money Backend
 
 ## Prerequisites
 1. Railway account (https://railway.app)
@@ -25,7 +25,7 @@ In Railway dashboard, go to your project → Variables tab and add:
 ### Required Variables:
 ```
 NODE_ENV=production
-MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/rizz?retryWrites=true&w=majority
+MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/rizz.money?retryWrites=true&w=majority
 FRONTEND_URL=https://your-frontend-domain.com
 JWT_SECRET=your-super-secret-jwt-key-here
 ```
@@ -47,7 +47,7 @@ NEXT_PUBLIC_API_URL=https://your-app-name.railway.app/api
 
 ## Step 6: Test the API
 Visit: `https://your-app-name.railway.app/health`
-Should return: `{"status":"OK","message":"rizz Backend is running"}`
+Should return: `{"status":"OK","message":"rizz.money Backend is running"}`
 
 ## Troubleshooting
 - Check Railway logs for errors
