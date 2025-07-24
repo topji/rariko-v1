@@ -37,112 +37,38 @@ const orderSchema = new mongoose.Schema({
     required: true,
     min: 0
   },
-  status: {
-    type: String,
-    enum: ['PENDING', 'COMPLETED', 'FAILED', 'CANCELLED'],
-    default: 'PENDING'
-  },
   transactionHash: {
     type: String,
     trim: true,
-    default: null
+    required: true
   },
-  blockNumber: {
-    type: Number,
-    default: null
-  },
-  gasUsed: {
-    type: Number,
-    default: null
-  },
-  gasPrice: {
-    type: Number,
-    default: null
-  },
-  networkFee: {
-    type: Number,
-    default: null
-  },
-  // Metadata for tracking
+  // Simplified metadata
   metadata: {
-    jupiterQuoteId: String,
-    slippage: Number,
-    route: Object,
-    timestamp: Date
+    tokenAmount: Number,
+    feeInUSD: Number,
+    timestamp: {
+      type: Date,
+      default: Date.now
+    }
   },
-  // Error tracking
-  error: {
-    message: String,
-    code: String,
-    timestamp: Date
-  },
-  // Timestamps
+  // Single timestamp
   createdAt: {
     type: Date,
     default: Date.now
-  },
-  updatedAt: {
-    type: Date,
-    default: Date.now
-  },
-  completedAt: {
-    type: Date,
-    default: null
   }
-}, {
-  timestamps: true
 });
 
 // Indexes for better query performance
 orderSchema.index({ user: 1, createdAt: -1 });
-orderSchema.index({ orderType: 1, status: 1 });
+orderSchema.index({ orderType: 1 });
 orderSchema.index({ tokenSymbol: 1 });
 orderSchema.index({ transactionHash: 1 });
 orderSchema.index({ createdAt: -1 });
-
-// Pre-save middleware to update timestamps
-orderSchema.pre('save', function(next) {
-  this.updatedAt = Date.now();
-  if (this.status === 'COMPLETED' && !this.completedAt) {
-    this.completedAt = Date.now();
-  }
-  next();
-});
-
-// Method to mark order as completed
-orderSchema.methods.markCompleted = function(transactionHash, blockNumber, gasUsed, gasPrice) {
-  this.status = 'COMPLETED';
-  this.transactionHash = transactionHash;
-  this.blockNumber = blockNumber;
-  this.gasUsed = gasUsed;
-  this.gasPrice = gasPrice;
-  this.networkFee = gasUsed * gasPrice;
-  this.completedAt = Date.now();
-  return this.save();
-};
-
-// Method to mark order as failed
-orderSchema.methods.markFailed = function(error) {
-  this.status = 'FAILED';
-  this.error = {
-    message: error.message || 'Unknown error',
-    code: error.code || 'UNKNOWN',
-    timestamp: Date.now()
-  };
-  return this.save();
-};
-
-// Method to cancel order
-orderSchema.methods.cancel = function() {
-  this.status = 'CANCELLED';
-  return this.save();
-};
 
 // Static method to get user orders
 orderSchema.statics.getUserOrders = async function(userId, options = {}) {
   const {
     orderType,
-    status,
     tokenSymbol,
     limit = 50,
     skip = 0,
@@ -153,7 +79,6 @@ orderSchema.statics.getUserOrders = async function(userId, options = {}) {
   const query = { user: userId };
   
   if (orderType) query.orderType = orderType;
-  if (status) query.status = status;
   if (tokenSymbol) query.tokenSymbol = tokenSymbol;
 
   const sort = {};
@@ -175,10 +100,7 @@ orderSchema.statics.getUserVolume = async function(userId, options = {}) {
     tokenSymbol
   } = options;
 
-  const query = { 
-    user: userId,
-    status: 'COMPLETED'
-  };
+  const query = { user: userId };
   
   if (startDate) query.createdAt = { $gte: new Date(startDate) };
   if (endDate) {
@@ -212,10 +134,7 @@ orderSchema.statics.getTokenVolume = async function(tokenSymbol, options = {}) {
     orderType
   } = options;
 
-  const query = { 
-    tokenSymbol,
-    status: 'COMPLETED'
-  };
+  const query = { tokenSymbol };
   
   if (startDate) query.createdAt = { $gte: new Date(startDate) };
   if (endDate) {

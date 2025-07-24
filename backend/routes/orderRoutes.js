@@ -64,7 +64,7 @@ router.post('/createBuyOrder', validateOrderData, async (req, res) => {
     // Get user
     const user = await getUserByWalletAddress(walletAddress);
     
-    // Create completed buy order
+    // Create buy order
     const order = new Order({
       user: user._id,
       orderType: 'BUY',
@@ -73,15 +73,12 @@ router.post('/createBuyOrder', validateOrderData, async (req, res) => {
       amount,
       price,
       totalValue,
-      status: 'COMPLETED',
-      transactionHash: transactionHash || null,
+      transactionHash,
       metadata: {
-        ...(metadata || {}),
         tokenAmount,
         feeInUSD,
         timestamp: new Date()
-      },
-      completedAt: new Date()
+      }
     });
     
     await order.save();
@@ -98,10 +95,8 @@ router.post('/createBuyOrder', validateOrderData, async (req, res) => {
         amount: order.amount,
         price: order.price,
         totalValue: order.totalValue,
-        status: order.status,
         transactionHash: order.transactionHash,
-        createdAt: order.createdAt,
-        completedAt: order.completedAt
+        createdAt: order.createdAt
       }
     });
   } catch (error) {
@@ -136,7 +131,7 @@ router.post('/createSellOrder', validateOrderData, async (req, res) => {
     // Get user
     const user = await getUserByWalletAddress(walletAddress);
     
-    // Create completed sell order
+    // Create sell order
     const order = new Order({
       user: user._id,
       orderType: 'SELL',
@@ -145,15 +140,12 @@ router.post('/createSellOrder', validateOrderData, async (req, res) => {
       amount,
       price,
       totalValue,
-      status: 'COMPLETED',
-      transactionHash: transactionHash || null,
+      transactionHash,
       metadata: {
-        ...(metadata || {}),
         tokenAmount,
         feeInUSD,
         timestamp: new Date()
-      },
-      completedAt: new Date()
+      }
     });
     
     await order.save();
@@ -170,10 +162,8 @@ router.post('/createSellOrder', validateOrderData, async (req, res) => {
         amount: order.amount,
         price: order.price,
         totalValue: order.totalValue,
-        status: order.status,
         transactionHash: order.transactionHash,
-        createdAt: order.createdAt,
-        completedAt: order.completedAt
+        createdAt: order.createdAt
       }
     });
   } catch (error) {
@@ -195,7 +185,6 @@ router.get('/getUserOrders', async (req, res) => {
     const { 
       walletAddress, 
       orderType, 
-      status, 
       tokenSymbol, 
       limit = 50, 
       skip = 0,
@@ -213,7 +202,6 @@ router.get('/getUserOrders', async (req, res) => {
     // Get orders with options
     const options = {
       orderType,
-      status,
       tokenSymbol,
       limit: parseInt(limit),
       skip: parseInt(skip),
@@ -329,7 +317,7 @@ router.get('/stats', async (req, res) => {
   try {
     const { startDate, endDate } = req.query;
     
-    const query = { status: 'COMPLETED' };
+    const query = {};
     
     if (startDate) query.createdAt = { $gte: new Date(startDate) };
     if (endDate) {
