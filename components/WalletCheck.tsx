@@ -1,6 +1,7 @@
 "use client";
 import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
 import { isSolanaWallet } from "@dynamic-labs/solana";
+import { DynamicWidget } from "@dynamic-labs/sdk-react-core";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from 'framer-motion';
@@ -175,11 +176,7 @@ export default function WalletCheck({ children }: { children: React.ReactNode })
                 </p>
               </div>
 
-              <div className="bg-gray-800/30 border border-gray-700/50 rounded-xl p-4">
-                <div className="text-center text-gray-400">
-                  <p>Please connect your wallet to continue</p>
-                </div>
-              </div>
+              <DynamicWidget />
 
               {/* Security Note */}
               <div className="mt-6 text-center">
