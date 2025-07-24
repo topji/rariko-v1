@@ -44,7 +44,7 @@ const getUserByWalletAddress = async (walletAddress) => {
 };
 
 // @route   POST /api/orders/createBuyOrder
-// @desc    Create a buy order
+// @desc    Create a completed buy order
 // @access  Public
 router.post('/createBuyOrder', validateOrderData, async (req, res) => {
   try {
@@ -55,13 +55,16 @@ router.post('/createBuyOrder', validateOrderData, async (req, res) => {
       amount, 
       price, 
       totalValue,
-      metadata 
+      metadata,
+      transactionHash,
+      tokenAmount,
+      feeInUSD
     } = req.body;
     
     // Get user
     const user = await getUserByWalletAddress(walletAddress);
     
-    // Create buy order
+    // Create completed buy order
     const order = new Order({
       user: user._id,
       orderType: 'BUY',
@@ -70,10 +73,21 @@ router.post('/createBuyOrder', validateOrderData, async (req, res) => {
       amount,
       price,
       totalValue,
-      metadata: metadata || {}
+      status: 'COMPLETED',
+      transactionHash: transactionHash || null,
+      metadata: {
+        ...(metadata || {}),
+        tokenAmount,
+        feeInUSD,
+        timestamp: new Date()
+      },
+      completedAt: new Date()
     });
     
     await order.save();
+    
+    // Update user's total volume
+    await user.updateVolume(totalValue);
     
     res.status(201).json({
       message: 'Buy order created successfully',
@@ -85,7 +99,9 @@ router.post('/createBuyOrder', validateOrderData, async (req, res) => {
         price: order.price,
         totalValue: order.totalValue,
         status: order.status,
-        createdAt: order.createdAt
+        transactionHash: order.transactionHash,
+        createdAt: order.createdAt,
+        completedAt: order.completedAt
       }
     });
   } catch (error) {
@@ -100,7 +116,7 @@ router.post('/createBuyOrder', validateOrderData, async (req, res) => {
 });
 
 // @route   POST /api/orders/createSellOrder
-// @desc    Create a sell order
+// @desc    Create a completed sell order
 // @access  Public
 router.post('/createSellOrder', validateOrderData, async (req, res) => {
   try {
@@ -111,13 +127,16 @@ router.post('/createSellOrder', validateOrderData, async (req, res) => {
       amount, 
       price, 
       totalValue,
-      metadata 
+      metadata,
+      transactionHash,
+      tokenAmount,
+      feeInUSD
     } = req.body;
     
     // Get user
     const user = await getUserByWalletAddress(walletAddress);
     
-    // Create sell order
+    // Create completed sell order
     const order = new Order({
       user: user._id,
       orderType: 'SELL',
@@ -126,10 +145,21 @@ router.post('/createSellOrder', validateOrderData, async (req, res) => {
       amount,
       price,
       totalValue,
-      metadata: metadata || {}
+      status: 'COMPLETED',
+      transactionHash: transactionHash || null,
+      metadata: {
+        ...(metadata || {}),
+        tokenAmount,
+        feeInUSD,
+        timestamp: new Date()
+      },
+      completedAt: new Date()
     });
     
     await order.save();
+    
+    // Update user's total volume
+    await user.updateVolume(totalValue);
     
     res.status(201).json({
       message: 'Sell order created successfully',
@@ -141,7 +171,9 @@ router.post('/createSellOrder', validateOrderData, async (req, res) => {
         price: order.price,
         totalValue: order.totalValue,
         status: order.status,
-        createdAt: order.createdAt
+        transactionHash: order.transactionHash,
+        createdAt: order.createdAt,
+        completedAt: order.completedAt
       }
     });
   } catch (error) {
@@ -263,77 +295,6 @@ router.get('/getUserVolume', async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
     
-    res.status(500).json({ error: 'Server error' });
-  }
-});
-
-// @route   PUT /api/orders/:orderId/complete
-// @desc    Mark order as completed
-// @access  Public
-router.put('/:orderId/complete', async (req, res) => {
-  try {
-    const { orderId } = req.params;
-    const { transactionHash, blockNumber, gasUsed, gasPrice } = req.body;
-    
-    if (!transactionHash) {
-      return res.status(400).json({ error: 'Transaction hash is required' });
-    }
-    
-    const order = await Order.findById(orderId);
-    
-    if (!order) {
-      return res.status(404).json({ error: 'Order not found' });
-    }
-    
-    await order.markCompleted(transactionHash, blockNumber, gasUsed, gasPrice);
-    
-    // Update user's total volume
-    const user = await User.findById(order.user);
-    if (user) {
-      await user.updateVolume(order.totalValue);
-    }
-    
-    res.json({
-      message: 'Order marked as completed',
-      order: {
-        id: order._id,
-        status: order.status,
-        transactionHash: order.transactionHash,
-        completedAt: order.completedAt
-      }
-    });
-  } catch (error) {
-    console.error('Error completing order:', error);
-    res.status(500).json({ error: 'Server error' });
-  }
-});
-
-// @route   PUT /api/orders/:orderId/fail
-// @desc    Mark order as failed
-// @access  Public
-router.put('/:orderId/fail', async (req, res) => {
-  try {
-    const { orderId } = req.params;
-    const { error } = req.body;
-    
-    const order = await Order.findById(orderId);
-    
-    if (!order) {
-      return res.status(404).json({ error: 'Order not found' });
-    }
-    
-    await order.markFailed(error);
-    
-    res.json({
-      message: 'Order marked as failed',
-      order: {
-        id: order._id,
-        status: order.status,
-        error: order.error
-      }
-    });
-  } catch (error) {
-    console.error('Error failing order:', error);
     res.status(500).json({ error: 'Server error' });
   }
 });

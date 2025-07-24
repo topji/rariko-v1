@@ -206,10 +206,13 @@ export default function StocksPage() {
     
     // Show processing modal
     setShowProcessingModal(true)
-    setProcessingMessage('Creating buy order...')
+    setProcessingMessage('Processing transaction...')
     
     try {
-      // Create backend order first
+      // Execute the swap first
+      const result = await buyToken(selectedToken.contractAddress, usdAmount)
+      
+      // Create backend order only after successful transaction
       const orderData = {
         walletAddress,
         tokenSymbol: selectedToken.symbol,
@@ -217,6 +220,9 @@ export default function StocksPage() {
         amount: usdAmount,
         price: parseFloat(selectedToken.priceUsd),
         totalValue: usdAmount,
+        transactionHash: result.txId,
+        tokenAmount: result.tokenAmount || 0,
+        feeInUSD: result.feeInUSD,
         metadata: {
           solAmount,
           feeAmount,
@@ -224,19 +230,7 @@ export default function StocksPage() {
         }
       }
       
-      const orderResponse = await orderApi.createBuyOrder(orderData)
-      setProcessingMessage('Processing transaction...')
-      
-      // Execute the swap
-      const result = await buyToken(selectedToken.contractAddress, usdAmount)
-      
-      // Update order status to completed
-      await orderApi.completeOrder(orderResponse.order.id, {
-        transactionHash: result.txId,
-        tokenAmount: result.tokenAmount || 0,
-        feeInUSD: result.feeInUSD,
-        tokenPrice: result.tokenPrice || parseFloat(selectedToken.priceUsd)
-      })
+      await orderApi.createBuyOrder(orderData)
       
       // Set success data
       setSuccessData({

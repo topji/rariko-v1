@@ -101,7 +101,7 @@ export default function SellTokenModal({ isOpen, onClose, token, onSuccess }: Se
     
     // Show processing modal
     setShowProcessingModal(true)
-    setProcessingMessage('Creating sell order...')
+    setProcessingMessage('Processing transaction...')
     
     try {
       if (!walletAddress) {
@@ -109,7 +109,13 @@ export default function SellTokenModal({ isOpen, onClose, token, onSuccess }: Se
         return
       }
 
-      // Create backend order first
+      // Convert token amount to raw amount using the correct decimals
+      const rawAmount = Math.floor(tokenAmount * Math.pow(10, token.decimals))
+      
+      // Execute the swap first
+      const result = await sellToken(token.contractAddress, rawAmount)
+      
+      // Create backend order only after successful transaction
       const orderData = {
         walletAddress,
         tokenSymbol: token.symbol,
@@ -117,6 +123,9 @@ export default function SellTokenModal({ isOpen, onClose, token, onSuccess }: Se
         amount: tokenAmount,
         price: parseFloat(token.priceUsd),
         totalValue: usdValue,
+        transactionHash: result.txId,
+        tokenAmount,
+        feeInUSD: result.feeInUSD,
         metadata: {
           solAmount,
           feeAmount,
@@ -124,20 +133,7 @@ export default function SellTokenModal({ isOpen, onClose, token, onSuccess }: Se
         }
       }
       
-      const orderResponse = await orderApi.createSellOrder(orderData)
-      setProcessingMessage('Processing transaction...')
-      
-      // Convert token amount to raw amount using the correct decimals
-      const rawAmount = Math.floor(tokenAmount * Math.pow(10, token.decimals))
-      
-      const result = await sellToken(token.contractAddress, rawAmount)
-      
-      // Update order status to completed
-      await orderApi.completeOrder(orderResponse.order.id, {
-        transactionHash: result.txId,
-        tokenAmount,
-        feeInUSD: result.feeInUSD
-      })
+      await orderApi.createSellOrder(orderData)
       
       setShowProcessingModal(false)
       onSuccess({
