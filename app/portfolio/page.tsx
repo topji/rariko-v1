@@ -89,7 +89,7 @@ export default function PortfolioPage() {
   return (
     <div className="min-h-screen bg-gray-900 text-white pb-20">
       {/* Header */}
-      <PageHeader showProfile={true} />
+              <PageHeader showProfile={true} />
 
       <div className="px-4 py-6 space-y-6">
         {/* Portfolio Overview */}
@@ -152,60 +152,60 @@ export default function PortfolioPage() {
               </Button>
             </Card>
           ) : (
-            <div className="space-y-3">
+          <div className="space-y-3">
               {holdings.map((holding) => (
                 <Card key={holding.contractAddress} className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-gray-700 rounded-xl flex items-center justify-center">
-                          <span className="text-white font-bold text-sm">{holding.symbol[0]}</span>
-                        </div>
-                        <div>
-                          <h4 className="font-semibold text-white">{holding.symbol}</h4>
-                          <p className="text-gray-400 text-sm">{holding.name}</p>
+                <div className="flex items-center justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-gray-700 rounded-xl flex items-center justify-center">
+                        <span className="text-white font-bold text-sm">{holding.symbol[0]}</span>
+                      </div>
+                      <div>
+                        <h4 className="font-semibold text-white">{holding.symbol}</h4>
+                        <p className="text-gray-400 text-sm">{holding.name}</p>
                           <p className="text-gray-400 text-xs">{holding.balanceFormatted} {holding.symbol}</p>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="text-right">
-                      <div className="font-semibold text-white">${holding.totalValue.toFixed(2)}</div>
-                      <div className={`flex items-center gap-1 text-sm ${
-                        (holding.change24h || 0) >= 0 ? 'text-green-400' : 'text-red-400'
-                      }`}>
-                        {(holding.change24h || 0) >= 0 ? (
-                          <TrendingUp className="w-3 h-3" />
-                        ) : (
-                          <TrendingDown className="w-3 h-3" />
-                        )}
-                        {(holding.change24h || 0) >= 0 ? '+' : ''}{(holding.change24h || 0).toFixed(2)}%
-                      </div>
-                      <div className="text-gray-400 text-xs">
-                        ${holding.priceUsd.toFixed(4)} per {holding.symbol}
                       </div>
                     </div>
                   </div>
                   
-                  <div className="mt-3 flex gap-2">
-                    <Button
-                      variant="outline"
-                      className="flex-1 text-sm"
-                      onClick={() => handleBuyMore(holding.contractAddress)}
-                    >
-                      Buy More
-                    </Button>
-                    <Button
-                      variant="outline"
-                      className="flex-1 text-sm"
-                      onClick={() => handleSell(holding)}
-                    >
-                      Sell
-                    </Button>
+                  <div className="text-right">
+                    <div className="font-semibold text-white">${holding.totalValue.toFixed(2)}</div>
+                    <div className={`flex items-center gap-1 text-sm ${
+                        (holding.change24h || 0) >= 0 ? 'text-green-400' : 'text-red-400'
+                    }`}>
+                        {(holding.change24h || 0) >= 0 ? (
+                        <TrendingUp className="w-3 h-3" />
+                      ) : (
+                        <TrendingDown className="w-3 h-3" />
+                      )}
+                        {(holding.change24h || 0) >= 0 ? '+' : ''}{(holding.change24h || 0).toFixed(2)}%
+                    </div>
+                    <div className="text-gray-400 text-xs">
+                        ${holding.priceUsd.toFixed(4)} per {holding.symbol}
+                    </div>
                   </div>
-                </Card>
-              ))}
-            </div>
+                </div>
+                
+                <div className="mt-3 flex gap-2">
+                  <Button
+                    variant="outline"
+                    className="flex-1 text-sm"
+                      onClick={() => handleBuyMore(holding.contractAddress)}
+                  >
+                    Buy More
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="flex-1 text-sm"
+                      onClick={() => handleSell(holding)}
+                  >
+                    Sell
+                  </Button>
+                </div>
+              </Card>
+            ))}
+          </div>
           )}
         </div>
       </div>

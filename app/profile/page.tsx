@@ -121,8 +121,8 @@ export default function ProfilePage() {
     const referralCode = user?.referralCode || referralData?.referralCode;
     if (referralCode) {
       await navigator.clipboard.writeText(referralCode)
-      setIsInviteCopied(true)
-      setTimeout(() => setIsInviteCopied(false), 2000)
+    setIsInviteCopied(true)
+    setTimeout(() => setIsInviteCopied(false), 2000)
     }
   }
 

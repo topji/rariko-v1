@@ -80,50 +80,50 @@ export default function StocksPage() {
       
       // Fetch all tokens data in parallel
       const promises = TOKEN_ADDRESSES.map(async (address) => {
-        try {
-          // Fetch price from Jupiter lite API
+    try {
+      // Fetch price from Jupiter lite API
           const jupiterResponse = await fetch(`https://lite-api.jup.ag/price/v3?ids=${address}`)
-          const jupiterData = await jupiterResponse.json()
-          
-          // Fetch additional data from DexScreener
+      const jupiterData = await jupiterResponse.json()
+      
+      // Fetch additional data from DexScreener
           const dexScreenerResponse = await fetch(`https://api.dexscreener.com/tokens/v1/solana/${address}`)
-          const dexScreenerData = await dexScreenerResponse.json()
-          
+      const dexScreenerData = await dexScreenerResponse.json()
+      
           let tokenInfo: TokenData = {
-            symbol: 'TOKEN',
-            name: 'Token',
-            priceUsd: '0',
-            volume24h: 0,
-            priceChange24h: 0,
+        symbol: 'TOKEN',
+        name: 'Token',
+        priceUsd: '0',
+        volume24h: 0,
+        priceChange24h: 0,
             contractAddress: address,
-          }
-          
-          // Get price from Jupiter
+      }
+      
+      // Get price from Jupiter
           if (jupiterData && jupiterData[address]) {
             tokenInfo.priceUsd = jupiterData[address].usdPrice.toString()
-          }
-          
-          // Get additional data from DexScreener
-          if (dexScreenerData && dexScreenerData.length > 0) {
-            const dexData = dexScreenerData[0]
-            tokenInfo.symbol = dexData.baseToken?.symbol || 'TOKEN'
-            tokenInfo.name = dexData.baseToken?.name || 'Token'
-            tokenInfo.volume24h = dexData.volume?.h24 || 0
-            tokenInfo.priceChange24h = dexData.priceChange?.h24 || 0
-          }
-          
-          return tokenInfo
-        } catch (error) {
+      }
+      
+      // Get additional data from DexScreener
+      if (dexScreenerData && dexScreenerData.length > 0) {
+        const dexData = dexScreenerData[0]
+        tokenInfo.symbol = dexData.baseToken?.symbol || 'TOKEN'
+        tokenInfo.name = dexData.baseToken?.name || 'Token'
+        tokenInfo.volume24h = dexData.volume?.h24 || 0
+        tokenInfo.priceChange24h = dexData.priceChange?.h24 || 0
+      }
+      
+      return tokenInfo
+    } catch (error) {
           console.error(`Error fetching data for ${address}:`, error)
-          return {
-            symbol: 'TOKEN',
-            name: 'Token',
-            priceUsd: '0',
-            volume24h: 0,
-            priceChange24h: 0,
+      return {
+        symbol: 'TOKEN',
+        name: 'Token',
+        priceUsd: '0',
+        volume24h: 0,
+        priceChange24h: 0,
             contractAddress: address,
-            error: 'Failed to load data'
-          }
+        error: 'Failed to load data'
+      }
         }
       })
       
@@ -279,55 +279,55 @@ export default function StocksPage() {
               .filter(token => parseFloat(token.priceUsd) > 0) // Filter out tokens with zero price
               .map((token, index) => (
               <Card key={token.contractAddress} className="p-4 hover:bg-gray-800/50 transition-colors">
-                <div className="flex items-center justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 bg-gradient-to-br from-usdt to-green-600 rounded-xl flex items-center justify-center">
+              <div className="flex items-center justify-between">
+                <div className="flex-1">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-gradient-to-br from-usdt to-green-600 rounded-xl flex items-center justify-center">
                         <span className="text-white font-bold text-sm">{token.symbol.slice(0, 2)}</span>
-                      </div>
-                      <div>
+                    </div>
+                    <div>
                         <h3 className="font-semibold text-lg text-white">{token.symbol}</h3>
                         <p className="text-gray-400 text-sm">{token.name}</p>
-                      </div>
                     </div>
                   </div>
-                  
-                  <div className="text-right">
-                    <div className="text-lg font-semibold text-white">
+                </div>
+                
+                <div className="text-right">
+                  <div className="text-lg font-semibold text-white">
                       ${formatPrice(token.priceUsd)}
-                    </div>
-                    <div className={`flex items-center gap-1 text-sm ${
+                  </div>
+                  <div className={`flex items-center gap-1 text-sm ${
                       token.priceChange24h >= 0 ? 'text-green-400' : 'text-red-400'
-                    }`}>
+                  }`}>
                       {token.priceChange24h >= 0 ? (
-                        <TrendingUp className="w-3 h-3" />
-                      ) : (
-                        <TrendingDown className="w-3 h-3" />
-                      )}
+                      <TrendingUp className="w-3 h-3" />
+                    ) : (
+                      <TrendingDown className="w-3 h-3" />
+                    )}
                       {token.priceChange24h >= 0 ? '+' : ''}{token.priceChange24h.toFixed(2)}%
-                    </div>
                   </div>
                 </div>
-                
-                <div className="mt-4 flex items-center justify-between text-sm text-gray-400">
-                  <div className="flex items-center gap-1">
-                    <Volume2 className="w-3 h-3" />
+              </div>
+              
+              <div className="mt-4 flex items-center justify-between text-sm text-gray-400">
+                <div className="flex items-center gap-1">
+                  <Volume2 className="w-3 h-3" />
                     <span>24h Vol: {formatVolume(token.volume24h)}</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <DollarSign className="w-3 h-3" />
-                    <span>Contract: {token.contractAddress.slice(0, 8)}...{token.contractAddress.slice(-8)}</span>
-                  </div>
                 </div>
-                
-                <Button
+                <div className="flex items-center gap-1">
+                  <DollarSign className="w-3 h-3" />
+                    <span>Contract: {token.contractAddress.slice(0, 8)}...{token.contractAddress.slice(-8)}</span>
+                </div>
+              </div>
+              
+              <Button
                   onClick={() => setSelectedToken(token)}
-                  className="w-full mt-3 bg-usdt hover:bg-primary-600"
+                className="w-full mt-3 bg-usdt hover:bg-primary-600"
                   disabled={token.error !== undefined}
-                >
+              >
                   {token.error ? 'Data Unavailable' : `Buy ${token.symbol}`}
-                </Button>
-              </Card>
+              </Button>
+            </Card>
             ))}
           </div>
         )}

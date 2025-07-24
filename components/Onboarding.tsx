@@ -17,37 +17,59 @@ export default function Onboarding() {
   const [referralCode, setReferralCode] = useState('');
   const [usernameError, setUsernameError] = useState('');
   const [checking, setChecking] = useState(false);
+  const [userExists, setUserExists] = useState(false);
   const { checkUser, createUser, checkUsername, loading, error, user } = useUserApi();
 
-  // Show disclaimer every time user logs in
+  // Check user existence when wallet connects
   useEffect(() => {
     if (primaryWallet?.address) {
-      setShowDisclaimer(true);
+      console.log('Checking user existence for wallet:', primaryWallet.address);
       setChecking(true);
       checkUser(primaryWallet.address).then((exists) => {
+        console.log('User exists check result:', exists);
         setChecking(false);
-        if (!exists) {
-          // User doesn't exist, will show username prompt after disclaimer
+        setUserExists(exists);
+        
+        if (exists) {
+          // User exists - show disclaimer and then redirect to home
+          console.log('User exists, showing disclaimer only');
+          setShowDisclaimer(true);
+          setShowUsernamePrompt(false);
+        } else {
+          // User doesn't exist - show disclaimer first, then username prompt
+          console.log('User does not exist, showing disclaimer and username prompt');
+          setShowDisclaimer(true);
           setShowUsernamePrompt(true);
         }
-        // If user exists, just show disclaimer and then redirect
+      }).catch((err) => {
+        console.error('Error checking user:', err);
+        setChecking(false);
+        // On error, assume user doesn't exist and show both disclaimer and username prompt
+        setShowDisclaimer(true);
+        setShowUsernamePrompt(true);
       });
     }
-  }, [primaryWallet?.address]);
+  }, [primaryWallet?.address, checkUser]);
 
   const handleDisclaimerAccept = () => {
+    console.log('Disclaimer accepted, userExists:', userExists);
     setShowDisclaimer(false);
-    if (showUsernamePrompt) {
-      // New user - stay on page to show username prompt
-    } else {
-      // Existing user - redirect to home
+    
+    if (userExists) {
+      // Existing user - redirect to home immediately
+      console.log('Redirecting existing user to home');
       router.push('/');
+    } else {
+      // New user - username prompt is already set to show, so just stay on page
+      // The username prompt will be visible now that disclaimer is closed
+      console.log('Staying on page for new user to enter username');
     }
   };
 
   const handleUsernameSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setUsernameError('');
+    
     if (!username) {
       setUsernameError('Username is required');
       return;
@@ -60,14 +82,18 @@ export default function Onboarding() {
       setUsernameError('Only letters, numbers, and underscores allowed');
       return;
     }
+    
     setChecking(true);
-    const isUnique = await checkUsername(username);
-    if (!isUnique) {
-      setUsernameError('Username is taken');
-      setChecking(false);
-      return;
-    }
+    
     try {
+      // Check username uniqueness
+      const isUnique = await checkUsername(username);
+      if (!isUnique) {
+        setUsernameError('Username is taken');
+        setChecking(false);
+        return;
+      }
+      
       if (!primaryWallet?.address) {
         setUsernameError('Wallet not connected');
         setChecking(false);
