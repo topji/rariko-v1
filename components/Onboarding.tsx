@@ -18,109 +18,47 @@ export default function Onboarding() {
   const [usernameError, setUsernameError] = useState('');
   const [checking, setChecking] = useState(false);
   const [userExists, setUserExists] = useState(false);
-  const [debugInfo, setDebugInfo] = useState('');
   const { checkUser, createUser, checkUsername, loading, error, user } = useUserApi();
 
   // Check user existence when wallet connects
   useEffect(() => {
     if (primaryWallet?.address) {
-      console.log('🔍 Wallet connected, checking user existence...');
-      console.log('Wallet address:', primaryWallet.address);
-      setDebugInfo(`Checking user for wallet: ${primaryWallet.address.substring(0, 8)}...`);
-      
+      console.log('🔄 Wallet connected, checking user existence for:', primaryWallet.address);
       setChecking(true);
-      
-      // Add a small delay to ensure wallet is fully connected
-      const checkUserWithDelay = async () => {
-        // Wait a bit for wallet to be fully ready
-        await new Promise(resolve => setTimeout(resolve, 500));
+      checkUser(primaryWallet.address).then((exists) => {
+        console.log('✅ User exists check result:', exists);
+        setChecking(false);
+        setUserExists(exists);
         
-        const maxRetries = 3;
-        let retryCount = 0;
-        
-        const attemptCheck = async (): Promise<boolean> => {
-          try {
-            const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-            if (!apiUrl) {
-              console.error('❌ NEXT_PUBLIC_API_URL is not set');
-              setDebugInfo('Error: API URL not configured');
-              return false;
-            }
-            
-            console.log(`🔗 Attempt ${retryCount + 1}: Using API URL:`, apiUrl);
-            const response = await fetch(`${apiUrl}/users/isUser?walletAddress=${primaryWallet.address}`);
-            const data = await response.json();
-            
-            console.log('🔍 Direct API response:', data);
-            setDebugInfo(`API Response (attempt ${retryCount + 1}): ${JSON.stringify(data)}`);
-            
-            if (response.ok) {
-              const exists = data.exists;
-              console.log('✅ User exists check result:', exists);
-              setUserExists(exists);
-              
-              if (exists) {
-                console.log('👤 User exists - showing disclaimer only');
-                setShowDisclaimer(true);
-                setShowUsernamePrompt(false);
-              } else {
-                console.log('🆕 User does not exist - showing disclaimer and username prompt');
-                setShowDisclaimer(true);
-                setShowUsernamePrompt(true);
-              }
-              return true; // Success
-            } else {
-              console.error('❌ API error:', data);
-              setDebugInfo(`API Error (attempt ${retryCount + 1}): ${data.error}`);
-              return false; // Failed, should retry
-            }
-          } catch (err: any) {
-            console.error(`❌ Network error (attempt ${retryCount + 1}):`, err);
-            setDebugInfo(`Network Error (attempt ${retryCount + 1}): ${err.message || 'Unknown error'}`);
-            return false; // Failed, should retry
-          }
-        };
-        
-        // Retry logic
-        while (retryCount < maxRetries) {
-          const success = await attemptCheck();
-          if (success) {
-            break; // Success, exit retry loop
-          }
-          
-          retryCount++;
-          if (retryCount < maxRetries) {
-            console.log(`🔄 Retrying... (${retryCount}/${maxRetries})`);
-            setDebugInfo(`Retrying... (${retryCount}/${maxRetries})`);
-            await new Promise(resolve => setTimeout(resolve, 1000 * retryCount)); // Exponential backoff
-          }
-        }
-        
-        // If all retries failed, assume user doesn't exist
-        if (retryCount >= maxRetries) {
-          console.log('⚠️ All retries failed, assuming user does not exist');
-          setDebugInfo('All retries failed, assuming new user');
+        if (exists) {
+          // User exists - redirect directly to home, no prompts needed
+          console.log('🚀 User exists, redirecting to home immediately');
+          router.push('/');
+        } else {
+          // User doesn't exist - show disclaimer first, then username prompt
+          console.log('📝 User does not exist, showing disclaimer and username prompt');
           setShowDisclaimer(true);
           setShowUsernamePrompt(true);
         }
-        
+      }).catch((err) => {
+        console.error('❌ Error checking user:', err);
         setChecking(false);
-      };
-      
-      checkUserWithDelay();
+        // On error, assume user doesn't exist and show both disclaimer and username prompt
+        console.log('⚠️ Error occurred, assuming new user and showing prompts');
+        setShowDisclaimer(true);
+        setShowUsernamePrompt(true);
+      });
+    } else {
+      console.log('🔌 No wallet connected yet');
     }
-  }, [primaryWallet?.address]);
+  }, [primaryWallet?.address, checkUser, router]);
 
   const handleDisclaimerAccept = () => {
-    console.log('📋 Disclaimer accepted, userExists:', userExists);
+    console.log('📋 Disclaimer accepted, closing disclaimer modal');
     setShowDisclaimer(false);
-    
-    if (userExists) {
-      console.log('🚀 Redirecting existing user to home');
-      router.push('/');
-    } else {
-      console.log('📝 Staying on page for new user to enter username');
-    }
+    // Username prompt will be visible now that disclaimer is closed
+    // No need to check userExists here since we only show disclaimer for new users
+    console.log('📝 Username prompt should now be visible');
   };
 
   const handleUsernameSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -143,12 +81,8 @@ export default function Onboarding() {
     setChecking(true);
     
     try {
-      console.log('🔍 Checking username uniqueness:', username);
-      
       // Check username uniqueness
       const isUnique = await checkUsername(username);
-      console.log('✅ Username unique check result:', isUnique);
-      
       if (!isUnique) {
         setUsernameError('Username is taken');
         setChecking(false);
@@ -160,8 +94,6 @@ export default function Onboarding() {
         setChecking(false);
         return;
       }
-      
-      console.log('👤 Creating user with data:', { username, walletAddress: primaryWallet.address, referralCode });
       
       // Prepare user data with optional referral code
       const userData: any = { 
@@ -175,11 +107,9 @@ export default function Onboarding() {
       }
       
       await createUser(userData);
-      console.log('✅ User created successfully');
       setShowUsernamePrompt(false);
       router.push('/');
     } catch (err) {
-      console.error('❌ Error creating user:', err);
       setUsernameError(error || 'Failed to create user');
     } finally {
       setChecking(false);
@@ -226,63 +156,59 @@ export default function Onboarding() {
             Enter the world of Tokenized Investments
           </motion.p>
 
-          {/* Wallet Connection Card */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.3 }}
-            className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-8 shadow-xl"
-          >
-            <div className="mb-6">
-              <h2 className="text-xl font-semibold text-white mb-2">
-                Connect Your Wallet
-              </h2>
-              <p className="text-gray-400 text-sm">
-                Securely connect your Solana wallet to start trading tokenized stocks
-              </p>
-            </div>
-
-            <div className="bg-gray-800/30 border border-gray-700/50 rounded-xl p-4">
-              <DynamicWidget />
-            </div>
-
-                      {/* Security Note */}
-          <div className="mt-6 text-center">
-            <p className="text-xs text-gray-500">
-              Your wallet connection is secure and encrypted
-            </p>
-          </div>
-
-          {/* Debug Info - Remove this in production */}
-          {process.env.NODE_ENV === 'development' && (
-            <div className="mt-4 p-3 bg-yellow-900/20 border border-yellow-600/30 rounded-lg">
-              {debugInfo && (
-                <p className="text-xs text-yellow-400 font-mono break-all mb-2">
-                  Debug: {debugInfo}
-                </p>
-              )}
-              <button
-                onClick={() => {
-                  if (primaryWallet?.address) {
-                    setChecking(true);
-                    setDebugInfo('Manual refresh...');
-                    // Trigger the check again
-                    const event = new Event('wallet-connect');
-                    window.dispatchEvent(event);
-                  }
-                }}
-                disabled={checking || !primaryWallet?.address}
-                className="text-xs bg-yellow-600 hover:bg-yellow-700 text-white px-2 py-1 rounded disabled:opacity-50"
-              >
-                {checking ? 'Checking...' : 'Refresh User Check'}
-              </button>
-            </div>
+          {/* Loading State */}
+          {checking && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.3 }}
+              className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-8 shadow-xl"
+            >
+              <div className="flex items-center justify-center space-x-3">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-usdt"></div>
+                <p className="text-white">Checking your account...</p>
+              </div>
+            </motion.div>
           )}
-          </motion.div>
 
-          {/* Username Prompt */}
-          {showUsernamePrompt && (
-            <div className="mt-8 bg-gray-800 border border-gray-700 rounded-2xl p-6 shadow-xl">
+          {/* Wallet Connection Card - Only show if not checking and no wallet connected */}
+          {!checking && !showUsernamePrompt && !primaryWallet?.address && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.3 }}
+              className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-8 shadow-xl"
+            >
+              <div className="mb-6">
+                <h2 className="text-xl font-semibold text-white mb-2">
+                  Connect Your Wallet
+                </h2>
+                <p className="text-gray-400 text-sm">
+                  Securely connect your Solana wallet to start trading tokenized stocks
+                </p>
+              </div>
+
+              <div className="bg-gray-800/30 border border-gray-700/50 rounded-xl p-4">
+                <DynamicWidget />
+              </div>
+
+              {/* Security Note */}
+              <div className="mt-6 text-center">
+                <p className="text-xs text-gray-500">
+                  Your wallet connection is secure and encrypted
+                </p>
+              </div>
+            </motion.div>
+          )}
+
+          {/* Username Prompt - Only show for new users after disclaimer */}
+          {showUsernamePrompt && !showDisclaimer && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6 }}
+              className="bg-gray-800 border border-gray-700 rounded-2xl p-6 shadow-xl"
+            >
               <h2 className="text-xl font-bold text-white mb-4">Create Your Account</h2>
               <form onSubmit={handleUsernameSubmit} className="space-y-4">
                 <div>
@@ -326,7 +252,7 @@ export default function Onboarding() {
                   {checking || loading ? 'Creating Account...' : 'Create Account'}
                 </button>
               </form>
-            </div>
+            </motion.div>
           )}
 
           {/* Features */}
