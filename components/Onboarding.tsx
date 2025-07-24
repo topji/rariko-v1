@@ -18,51 +18,82 @@ export default function Onboarding() {
   const [usernameError, setUsernameError] = useState('');
   const [checking, setChecking] = useState(false);
   const [userExists, setUserExists] = useState(false);
+  const [debugInfo, setDebugInfo] = useState('');
   const { checkUser, createUser, checkUsername, loading, error, user } = useUserApi();
 
   // Check user existence when wallet connects
   useEffect(() => {
     if (primaryWallet?.address) {
-      console.log('Checking user existence for wallet:', primaryWallet.address);
+      console.log('🔍 Wallet connected, checking user existence...');
+      console.log('Wallet address:', primaryWallet.address);
+      setDebugInfo(`Checking user for wallet: ${primaryWallet.address.substring(0, 8)}...`);
+      
       setChecking(true);
-      checkUser(primaryWallet.address).then((exists) => {
-        console.log('User exists check result:', exists);
-        setChecking(false);
-        setUserExists(exists);
-        
-        if (exists) {
-          // User exists - show disclaimer and then redirect to home
-          console.log('User exists, showing disclaimer only');
-          setShowDisclaimer(true);
-          setShowUsernamePrompt(false);
-        } else {
-          // User doesn't exist - show disclaimer first, then username prompt
-          console.log('User does not exist, showing disclaimer and username prompt');
+      
+      // Direct API call for debugging
+      const checkUserDirectly = async () => {
+        try {
+          const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+          if (!apiUrl) {
+            console.error('❌ NEXT_PUBLIC_API_URL is not set');
+            setDebugInfo('Error: API URL not configured');
+            setShowDisclaimer(true);
+            setShowUsernamePrompt(true);
+            return;
+          }
+          
+          console.log('🔗 Using API URL:', apiUrl);
+          const response = await fetch(`${apiUrl}/users/isUser?walletAddress=${primaryWallet.address}`);
+          const data = await response.json();
+          
+          console.log('🔍 Direct API response:', data);
+          setDebugInfo(`API Response: ${JSON.stringify(data)}`);
+          
+          if (response.ok) {
+            const exists = data.exists;
+            console.log('✅ User exists check result:', exists);
+            setUserExists(exists);
+            
+            if (exists) {
+              console.log('👤 User exists - showing disclaimer only');
+              setShowDisclaimer(true);
+              setShowUsernamePrompt(false);
+            } else {
+              console.log('🆕 User does not exist - showing disclaimer and username prompt');
+              setShowDisclaimer(true);
+              setShowUsernamePrompt(true);
+            }
+          } else {
+            console.error('❌ API error:', data);
+            setDebugInfo(`API Error: ${data.error}`);
+            // On API error, assume user doesn't exist
+            setShowDisclaimer(true);
+            setShowUsernamePrompt(true);
+          }
+        } catch (err: any) {
+          console.error('❌ Network error:', err);
+          setDebugInfo(`Network Error: ${err.message || 'Unknown error'}`);
+          // On network error, assume user doesn't exist
           setShowDisclaimer(true);
           setShowUsernamePrompt(true);
+        } finally {
+          setChecking(false);
         }
-      }).catch((err) => {
-        console.error('Error checking user:', err);
-        setChecking(false);
-        // On error, assume user doesn't exist and show both disclaimer and username prompt
-        setShowDisclaimer(true);
-        setShowUsernamePrompt(true);
-      });
+      };
+      
+      checkUserDirectly();
     }
-  }, [primaryWallet?.address, checkUser]);
+  }, [primaryWallet?.address]);
 
   const handleDisclaimerAccept = () => {
-    console.log('Disclaimer accepted, userExists:', userExists);
+    console.log('📋 Disclaimer accepted, userExists:', userExists);
     setShowDisclaimer(false);
     
     if (userExists) {
-      // Existing user - redirect to home immediately
-      console.log('Redirecting existing user to home');
+      console.log('🚀 Redirecting existing user to home');
       router.push('/');
     } else {
-      // New user - username prompt is already set to show, so just stay on page
-      // The username prompt will be visible now that disclaimer is closed
-      console.log('Staying on page for new user to enter username');
+      console.log('📝 Staying on page for new user to enter username');
     }
   };
 
@@ -86,8 +117,12 @@ export default function Onboarding() {
     setChecking(true);
     
     try {
+      console.log('🔍 Checking username uniqueness:', username);
+      
       // Check username uniqueness
       const isUnique = await checkUsername(username);
+      console.log('✅ Username unique check result:', isUnique);
+      
       if (!isUnique) {
         setUsernameError('Username is taken');
         setChecking(false);
@@ -99,6 +134,8 @@ export default function Onboarding() {
         setChecking(false);
         return;
       }
+      
+      console.log('👤 Creating user with data:', { username, walletAddress: primaryWallet.address, referralCode });
       
       // Prepare user data with optional referral code
       const userData: any = { 
@@ -112,9 +149,11 @@ export default function Onboarding() {
       }
       
       await createUser(userData);
+      console.log('✅ User created successfully');
       setShowUsernamePrompt(false);
       router.push('/');
     } catch (err) {
+      console.error('❌ Error creating user:', err);
       setUsernameError(error || 'Failed to create user');
     } finally {
       setChecking(false);
@@ -181,12 +220,21 @@ export default function Onboarding() {
               <DynamicWidget />
             </div>
 
-            {/* Security Note */}
-            <div className="mt-6 text-center">
-              <p className="text-xs text-gray-500">
-                Your wallet connection is secure and encrypted
+                      {/* Security Note */}
+          <div className="mt-6 text-center">
+            <p className="text-xs text-gray-500">
+              Your wallet connection is secure and encrypted
+            </p>
+          </div>
+
+          {/* Debug Info - Remove this in production */}
+          {process.env.NODE_ENV === 'development' && debugInfo && (
+            <div className="mt-4 p-3 bg-yellow-900/20 border border-yellow-600/30 rounded-lg">
+              <p className="text-xs text-yellow-400 font-mono break-all">
+                Debug: {debugInfo}
               </p>
             </div>
+          )}
           </motion.div>
 
           {/* Username Prompt */}
