@@ -103,7 +103,7 @@ export default function ProfilePage() {
   // Load user data when wallet is connected
   useEffect(() => {
     const loadUserData = async () => {
-      if (walletAddress) {
+    if (walletAddress) {
         try {
           // Load user profile
           const profile = await getProfile(walletAddress);
@@ -758,6 +758,6 @@ export default function ProfilePage() {
       )}
 
       <Navigation />
-      </div>
+    </div>
   )
 } 

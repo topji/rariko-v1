@@ -524,7 +524,7 @@ export default function StocksPage() {
         </div>
       )}
 
-      </div>
+
 
       <Navigation />
 
