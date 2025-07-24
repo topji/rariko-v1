@@ -1,16 +1,35 @@
 'use client'
 
-import React, { useState } from 'react'
-import { Navigation } from '../../components/Navigation'
-import { Card } from '../../components/ui/Card'
+import React, { useState, useEffect } from 'react'
+import { motion } from 'framer-motion'
+import { 
+  TrendingUp, 
+  TrendingDown,
+  DollarSign,
+  Percent,
+  RefreshCw,
+  BarChart3,
+  ShoppingCart,
+  ArrowUpRight,
+  ArrowDownLeft,
+  CheckCircle,
+  Clock,
+  XCircle,
+  Loader2,
+  PieChart
+} from 'lucide-react'
 import { Button } from '../../components/ui/Button'
-import { TrendingUp, TrendingDown, DollarSign, Percent, PieChart, RefreshCw, Loader2 } from 'lucide-react'
-import { PageHeader } from '../../components/PageHeader'
-import { usePortfolio } from '../../hooks/usePortfolio'
+import { Card } from '../../components/ui/Card'
+import { useDynamicWallet } from '../../hooks/useDynamicWallet'
+import { formatUSDT, formatCurrency, shortenAddress } from '../../lib/utils'
 import { useRouter } from 'next/navigation'
+import { Navigation } from '../../components/Navigation'
+import { PageHeader } from '../../components/PageHeader'
+import { useUserApi } from '../../hooks/useUserApi'
+import { orderApi } from '../../lib/api'
 import SellTokenModal from '../../components/SellTokenModal'
 import TransactionSuccessModal from '../../components/TransactionSuccessModal'
-import WalletCheck from '../../components/WalletCheck'
+import { usePortfolio } from '../../hooks/usePortfolio'
 
 export default function PortfolioPage() {
   const { 
@@ -91,8 +110,7 @@ export default function PortfolioPage() {
   }
 
   return (
-    <WalletCheck>
-      <div className="min-h-screen bg-gray-900 text-white pb-20">
+    <div className="min-h-screen bg-gray-900 text-white pb-20">
       {/* Header */}
               <PageHeader showProfile={true} />
 
@@ -265,7 +283,6 @@ export default function PortfolioPage() {
           </div>
         </div>
       )}
-      </div>
-    </WalletCheck>
+    </div>
   )
 } 

@@ -11,7 +11,6 @@ import { useSwapV2 } from '../../hooks/useSwapV2'
 import { useDynamicWallet } from '../../hooks/useDynamicWallet'
 import { NATIVE_MINT } from '@solana/spl-token'
 import TransactionSuccessModal from '../../components/TransactionSuccessModal'
-import WalletCheck from '../../components/WalletCheck'
 import { orderApi } from '../../lib/api'
 
 // Token addresses
@@ -291,8 +290,7 @@ export default function StocksPage() {
   }
 
   return (
-    <WalletCheck>
-      <div className="min-h-screen bg-gray-900 text-white pb-20">
+    <div className="min-h-screen bg-gray-900 text-white pb-20">
       {/* Header */}
       <PageHeader showProfile={true} 
         showRefresh={true}
@@ -565,6 +563,6 @@ export default function StocksPage() {
           </div>
         </div>
       )}
-    </WalletCheck>
+    </div>
   )
 } 
