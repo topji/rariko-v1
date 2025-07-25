@@ -197,20 +197,17 @@ export default function PortfolioPage() {
                   <div className="text-right">
                     <div className="font-semibold text-white">${holding.totalValue.toFixed(2)}</div>
                     <div className={`flex items-center gap-1 text-sm ${
-                        holding.unrealizedPnL >= 0 ? 'text-green-400' : 'text-red-400'
+                        (holding.change24h || 0) >= 0 ? 'text-green-400' : 'text-red-400'
                     }`}>
-                        {holding.unrealizedPnL >= 0 ? (
+                        {(holding.change24h || 0) >= 0 ? (
                         <TrendingUp className="w-3 h-3" />
                       ) : (
                         <TrendingDown className="w-3 h-3" />
                       )}
-                        {holding.unrealizedPnL >= 0 ? '+' : ''}${holding.unrealizedPnL.toFixed(2)} ({holding.unrealizedPnLPercent >= 0 ? '+' : ''}{holding.unrealizedPnLPercent.toFixed(2)}%)
+                        {(holding.change24h || 0) >= 0 ? '+' : ''}{(holding.change24h || 0).toFixed(2)}%
                     </div>
                     <div className="text-gray-400 text-xs">
                         ${holding.priceUsd.toFixed(4)} per {holding.symbol}
-                    </div>
-                    <div className="text-gray-400 text-xs">
-                        Avg: ${holding.averageBuyPrice.toFixed(4)}
                     </div>
                   </div>
                 </div>
