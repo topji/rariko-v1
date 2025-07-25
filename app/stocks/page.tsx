@@ -40,6 +40,7 @@ interface TokenData {
   volume24h: number
   priceChange24h: number
   contractAddress: string
+  decimals: number
   isLoading?: boolean
   error?: string
 }
@@ -101,11 +102,13 @@ export default function StocksPage() {
         volume24h: 0,
         priceChange24h: 0,
             contractAddress: address,
+        decimals: 9, // Default fallback
       }
       
-      // Get price from Jupiter
+      // Get price and decimals from Jupiter
           if (jupiterData && jupiterData[address]) {
             tokenInfo.priceUsd = jupiterData[address].usdPrice.toString()
+            tokenInfo.decimals = jupiterData[address].decimals || 9
       }
       
       // Get additional data from DexScreener
@@ -127,6 +130,7 @@ export default function StocksPage() {
         volume24h: 0,
         priceChange24h: 0,
             contractAddress: address,
+        decimals: 8, // Default fallback
         error: 'Failed to load data'
       }
         }
@@ -274,10 +278,10 @@ export default function StocksPage() {
   }
 
   const getEstimatedTokenAmount = () => {
-    if (!quoteData || !buyAmountUSD) return 0
+    if (!quoteData || !buyAmountUSD || !selectedToken) return 0
     const usdAmount = parseFloat(buyAmountUSD)
     const outAmount = parseFloat(quoteData.outAmount || '0')
-    return outAmount / Math.pow(10, 9) // Assuming 9 decimals
+    return outAmount / Math.pow(10, selectedToken.decimals) // Use actual token decimals
   }
 
   return (

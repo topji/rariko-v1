@@ -17,7 +17,10 @@ import {
   Clock,
   XCircle,
   Copy,
-  ExternalLink
+  ExternalLink,
+  Filter,
+  RefreshCw,
+  Loader2
 } from 'lucide-react'
 import { Button } from '../components/ui/Button'
 import { Card, CardContent } from '../components/ui/Card'
@@ -42,165 +45,56 @@ export default function DashboardPage() {
   } = useDynamicWallet()
   
   const router = useRouter()
-  const [showBalance, setShowBalance] = useState(true)
   const [isAddressCopied, setIsAddressCopied] = useState(false)
-  const [dashboardData, setDashboardData] = useState<{
-    portfolioValue: number;
-    totalVolume: number;
-    totalProfitLoss: number;
-    profitLossPercent: number;
-    totalInvested: number;
-    totalRealizedPnL: number;
-    ordersCount: number;
-    recentOrders: any[];
-  }>({
-    portfolioValue: 0,
-    totalVolume: 0,
-    totalProfitLoss: 0,
-    profitLossPercent: 0,
-    totalInvested: 0,
-    totalRealizedPnL: 0,
-    ordersCount: 0,
-    recentOrders: []
+  const [filterByMe, setFilterByMe] = useState(false)
+  const [orders, setOrders] = useState<any[]>([])
+  const [isLoadingOrders, setIsLoadingOrders] = useState(true)
+  const [pagination, setPagination] = useState({
+    currentPage: 1,
+    totalPages: 1,
+    totalOrders: 0,
+    hasNextPage: false,
+    hasPrevPage: false
   })
-  const [isLoadingDashboard, setIsLoadingDashboard] = useState(true)
-  const [userProfile, setUserProfile] = useState<any>(null)
 
   // User API hook
   const { getProfile, loading: userLoading } = useUserApi()
 
-  // Get SOL balance from token balances
-  const solBalance = tokenBalances?.find(token => token.symbol === 'SOL')?.balance || 0
-  const solBalanceUSD = tokenBalances?.find(token => token.symbol === 'SOL')?.marketValue || 0
-
-  // Fetch dashboard data from backend
-  useEffect(() => {
-    const fetchDashboardData = async () => {
-      if (!walletAddress) return;
+  // Fetch orders from backend
+  const fetchOrders = async () => {
+    setIsLoadingOrders(true);
+    try {
+      const options: any = {
+        limit: 20,
+        page: pagination.currentPage
+      };
       
-      setIsLoadingDashboard(true);
-      try {
-        // Fetch user profile
-        const profile = await getProfile(walletAddress);
-        if (profile) {
-          setUserProfile(profile);
-        }
-
-        // Fetch user orders and volume
-        const [ordersResponse, volumeResponse, realizedPnLResponse] = await Promise.all([
-          orderApi.getUserOrders(walletAddress),
-          orderApi.getUserVolume(walletAddress),
-          orderApi.getUserRealizedPnL(walletAddress)
-        ]);
-
-        const orders = ordersResponse.orders || [];
-        const totalVolume = volumeResponse.volume?.totalVolume || 0;
-        const totalRealizedPnL = realizedPnLResponse.totalRealizedPnL || 0;
-
-        // Process orders to calculate holdings and portfolio value
-        const tokenHoldings: { [key: string]: any } = {};
-        
-        orders.forEach((order: any) => {
-          const symbol = order.symbol;
-          
-          if (!tokenHoldings[symbol]) {
-            tokenHoldings[symbol] = {
-              totalBought: 0,
-              totalBoughtValue: 0,
-              totalSold: 0,
-              totalSoldValue: 0,
-              averageBuyPrice: 0
-            };
-          }
-          
-          if (order.type === 'BUY') {
-            tokenHoldings[symbol].totalBought += order.tokenAmount;
-            tokenHoldings[symbol].totalBoughtValue += order.amountInUsd;
-          } else if (order.type === 'SELL') {
-            tokenHoldings[symbol].totalSold += order.tokenAmount;
-            tokenHoldings[symbol].totalSoldValue += order.amountInUsd;
-          }
-        });
-
-        // Calculate current holdings and portfolio value
-        let totalPortfolioValue = solBalanceUSD; // Start with SOL balance
-        let totalInvested = 0;
-        let totalCurrentValue = 0;
-
-        Object.keys(tokenHoldings).forEach(symbol => {
-          const holding = tokenHoldings[symbol];
-          const currentBalance = holding.totalBought - holding.totalSold;
-          
-          if (currentBalance > 0) {
-            // Calculate average buy price
-            const avgBuyPrice = holding.totalBoughtValue / holding.totalBought;
-            holding.averageBuyPrice = avgBuyPrice;
-            
-            // Get current price from token data (we'll need to fetch this)
-            // For now, use average buy price as approximation
-            const currentPrice = avgBuyPrice; // This should be fetched from token price API
-            
-            const currentValue = currentBalance * currentPrice;
-            totalCurrentValue += currentValue;
-            totalInvested += holding.totalBoughtValue;
-          }
-        });
-
-        // Add current token balances from wallet
-        if (tokenBalances) {
-          tokenBalances.forEach(token => {
-            if (token.symbol !== 'SOL') {
-              totalPortfolioValue += token.marketValue || 0;
-            }
-          });
-        }
-
-        // Calculate profit/loss
-        const totalProfitLoss = totalPortfolioValue - totalInvested;
-        const profitLossPercent = totalInvested > 0 ? (totalProfitLoss / totalInvested) * 100 : 0;
-
-        // Get recent orders for display
-        const recentOrders = orders.slice(0, 5).map((order: any) => ({
-          id: order._id || order.id,
-          type: order.type?.toLowerCase() || 'buy',
-          symbol: order.symbol,
-          shares: order.tokenAmount,
-          price: order.tokenPrice,
-          total: order.amountInUsd,
-          status: 'completed', // All orders are completed now
-          timestamp: new Date(order.timestamp)
-        }));
-
-        setDashboardData({
-          portfolioValue: totalPortfolioValue,
-          totalVolume,
-          totalProfitLoss,
-          profitLossPercent,
-          totalInvested,
-          totalRealizedPnL,
-          ordersCount: orders.length,
-          recentOrders
-        });
-      } catch (error) {
-        console.error('Error fetching dashboard data:', error);
-        // Fallback to default values
-        setDashboardData({
-          portfolioValue: solBalanceUSD,
-          totalVolume: 0,
-          totalProfitLoss: 0,
-          profitLossPercent: 0,
-          totalInvested: 0,
-          totalRealizedPnL: 0,
-          ordersCount: 0,
-          recentOrders: []
-        });
-      } finally {
-        setIsLoadingDashboard(false);
+      if (filterByMe && walletAddress) {
+        options.userAddress = walletAddress;
       }
-    };
+      
+      const response = await orderApi.getAllOrders(options);
+      
+      setOrders(response.orders || []);
+      setPagination({
+        currentPage: response.pagination.currentPage,
+        totalPages: response.pagination.totalPages,
+        totalOrders: response.pagination.totalOrders,
+        hasNextPage: response.pagination.hasNextPage,
+        hasPrevPage: response.pagination.hasPrevPage
+      });
+    } catch (error) {
+      console.error('Error fetching orders:', error);
+      setOrders([]);
+    } finally {
+      setIsLoadingOrders(false);
+    }
+  };
 
-    fetchDashboardData();
-  }, [walletAddress, solBalanceUSD, tokenBalances, getProfile]);
+  // Fetch orders when component mounts or filter changes
+  useEffect(() => {
+    fetchOrders();
+  }, [filterByMe, pagination.currentPage, walletAddress]);
 
   const getOrderIcon = (type: 'buy' | 'sell') => {
     if (type === 'buy') {
@@ -261,184 +155,114 @@ export default function DashboardPage() {
           )}
         </PageHeader>
 
-        {isLoadingDashboard ? (
-          <div className="px-4 py-6 flex items-center justify-center">
-            <div className="flex items-center gap-2">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-usdt"></div>
-              <span className="text-gray-400">Loading dashboard...</span>
+        <div className="px-4 py-6 space-y-6">
+          {/* Filter and Header */}
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-bold text-white">Order History</h2>
+            <div className="flex items-center gap-3">
+              <Button
+                variant={filterByMe ? "primary" : "outline"}
+                size="sm"
+                onClick={() => setFilterByMe(!filterByMe)}
+                className="flex items-center gap-2"
+              >
+                <Filter className="w-4 h-4" />
+                {filterByMe ? 'My Orders' : 'All Orders'}
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={fetchOrders}
+                className="text-gray-400 hover:text-white"
+              >
+                <RefreshCw className="w-4 h-4" />
+              </Button>
             </div>
           </div>
-        ) : (
-        <div className="px-4 py-6 space-y-6">
-          {/* Portfolio Value Card */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-          >
-            <Card variant="elevated" className="bg-gradient-to-br from-usdt to-primary-600 text-white">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-lg font-medium">Portfolio Value</h2>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setShowBalance(!showBalance)}
-                    className="text-white hover:bg-white/10"
-                  >
-                    {showBalance ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </Button>
-                </div>
-                
-                <div className="mb-4">
-                  {showBalance ? (
-                    <div className="space-y-2">
-                      <div className="text-3xl font-bold">
-                        ${dashboardData.portfolioValue.toLocaleString()}
-                      </div>
-                      <div className={`flex items-center gap-1 text-sm ${
-                        dashboardData.totalProfitLoss >= 0 ? 'text-green-300' : 'text-red-300'
-                      }`}>
-                        {dashboardData.totalProfitLoss >= 0 ? (
-                          <TrendingUp className="w-4 h-4" />
-                        ) : (
-                          <TrendingDown className="w-4 h-4" />
-                        )}
-                        {dashboardData.totalProfitLoss >= 0 ? '+' : ''}${dashboardData.totalProfitLoss.toFixed(2)} ({dashboardData.profitLossPercent >= 0 ? '+' : ''}{dashboardData.profitLossPercent.toFixed(2)}%)
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="text-3xl font-bold">••••••</div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
 
-          {/* Stats Grid */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.1 }}
-            className="grid grid-cols-2 gap-4"
-          >
-            {/* USD Balance (from SOL) */}
-            <Card className="p-4">
-              <div className="flex items-center justify-between mb-2">
-                <div className="w-8 h-8 bg-usdt rounded-lg flex items-center justify-center">
-                  <DollarSign className="w-4 h-4 text-white" />
-                </div>
-                <span className="text-xs text-gray-400">USD Balance</span>
-              </div>
-              <div className="text-xl font-bold text-usdt">
-                {isLoadingTokens ? '...' : `$${solBalanceUSD.toLocaleString(undefined, { maximumFractionDigits: 2 })}`}
-              </div>
-              <div className="text-sm text-gray-400">
-                {isLoadingTokens ? '...' : `${solBalance.toFixed(4)} SOL`}
-              </div>
-            </Card>
-
-            {/* Total Volume */}
-            <Card className="p-4">
-              <div className="flex items-center justify-between mb-2">
-                <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                  <BarChart3 className="w-4 h-4 text-white" />
-                </div>
-                <span className="text-xs text-gray-400">Total Volume</span>
-              </div>
-              <div className="text-xl font-bold text-white">${dashboardData.totalVolume.toLocaleString()}</div>
-              <div className="text-sm text-gray-400">All time</div>
-            </Card>
-
-            {/* Realized P&L */}
-            <Card className="p-4">
-              <div className="flex items-center justify-between mb-2">
-                <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center">
-                  <CheckCircle className="w-4 h-4 text-white" />
-                </div>
-                <span className="text-xs text-gray-400">Realized P&L</span>
-              </div>
-              <div className={`text-xl font-bold ${
-                dashboardData.totalRealizedPnL >= 0 ? 'text-green-400' : 'text-red-400'
-              }`}>
-                {dashboardData.totalRealizedPnL >= 0 ? '+' : ''}${dashboardData.totalRealizedPnL.toFixed(2)}
-              </div>
-              <div className="text-sm text-gray-400">
-                From completed trades
-              </div>
-            </Card>
-
-            {/* Total Invested */}
-            <Card className="p-4">
-              <div className="flex items-center justify-between mb-2">
-                <div className="w-8 h-8 bg-purple-600 rounded-lg flex items-center justify-center">
-                  <TrendingDown className="w-4 h-4 text-white" />
-                </div>
-                <span className="text-xs text-gray-400">Total Invested</span>
-              </div>
-              <div className="text-xl font-bold text-white">${dashboardData.totalInvested.toLocaleString()}</div>
-              <div className="text-sm text-gray-400">Capital deployed</div>
-            </Card>
-          </motion.div>
-
-          {/* Orders Section */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-            className="space-y-4"
-          >
-            {/* Orders Header */}
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-white">Recent Orders</h3>
+          {/* Orders List */}
+          {isLoadingOrders ? (
+            <div className="flex items-center justify-center py-12">
               <div className="flex items-center gap-2">
-                <div className="w-6 h-6 bg-orange-600 rounded-lg flex items-center justify-center">
-                  <ShoppingCart className="w-3 h-3 text-white" />
-                </div>
-                <span className="text-sm text-gray-400">{dashboardData.ordersCount} total orders</span>
+                <Loader2 className="w-6 h-6 animate-spin text-usdt" />
+                <span className="text-gray-400">Loading orders...</span>
               </div>
             </div>
-
-            {/* Recent Orders List */}
-            {dashboardData.recentOrders.length > 0 ? (
+          ) : orders.length > 0 ? (
             <div className="space-y-3">
-              {dashboardData.recentOrders.map((order) => (
+              {orders.map((order) => (
                 <Card key={order.id} className="p-4">
                   <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        {getOrderIcon(order.type)}
+                    <div className="flex items-center gap-3">
+                      {getOrderIcon(order.type.toLowerCase())}
                       <div>
-                          <div className="font-semibold text-white">
-                          {order.type === 'buy' ? 'Bought' : 'Sold'} {order.shares} {order.symbol}
-                          </div>
-                          <div className="text-sm text-gray-400">
-                            ${order.price.toFixed(4)} per token
-                          </div>
+                        <div className="font-semibold text-white">
+                          {order.username} {order.type.toLowerCase() === 'buy' ? 'bought' : 'sold'} {order.tokenAmount.toFixed(6)} {order.symbol} for ${order.amountInUsd.toFixed(2)}
+                        </div>
+                        <div className="text-sm text-gray-400">
+                          Price: ${order.tokenPrice.toFixed(4)} | {formatTimeAgo(new Date(order.timestamp))}
                         </div>
                       </div>
+                    </div>
                     <div className="text-right">
-                        <div className="font-semibold text-white">
-                        ${order.total.toFixed(2)}
-                        </div>
-                        <div className="flex items-center gap-1 text-sm text-gray-400">
-                        {getStatusIcon(order.status)}
-                          <span>{formatTimeAgo(order.timestamp)}</span>
+                      <div className={`font-semibold ${
+                        order.type === 'BUY' ? 'text-green-400' : 'text-red-400'
+                      }`}>
+                        ${order.amountInUsd.toFixed(2)}
+                      </div>
+                      <div className="text-xs text-gray-400">
+                        {order.type === 'SELL' && order.realizedPNL && (
+                          <span className={order.realizedPNL >= 0 ? 'text-green-400' : 'text-red-400'}>
+                            PnL: {order.realizedPNL >= 0 ? '+' : ''}${order.realizedPNL.toFixed(2)}
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>
                 </Card>
               ))}
             </div>
-            ) : (
-              <Card className="p-6 text-center">
-                <ShoppingCart className="w-8 h-8 mx-auto mb-2 text-gray-400" />
-                <p className="text-gray-400">No orders yet</p>
-                <p className="text-sm text-gray-500">Start trading to see your order history</p>
-              </Card>
-            )}
-          </motion.div>
+          ) : (
+            <Card className="p-8 text-center">
+              <ShoppingCart className="w-12 h-12 mx-auto mb-4 text-gray-500" />
+              <h3 className="text-lg font-semibold text-white mb-2">No Orders Found</h3>
+              <p className="text-gray-400 mb-4">
+                {filterByMe ? "You haven't made any trades yet." : "No trading activity yet."}
+              </p>
+              <Button 
+                onClick={() => router.push('/stocks')}
+                className="bg-usdt hover:bg-primary-600"
+              >
+                Start Trading
+              </Button>
+            </Card>
+          )}
+
+          {/* Pagination */}
+          {pagination.totalPages > 1 && (
+            <div className="flex items-center justify-center gap-2 mt-6">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPagination(prev => ({ ...prev, currentPage: prev.currentPage - 1 }))}
+                disabled={!pagination.hasPrevPage}
+              >
+                Previous
+              </Button>
+              <span className="text-sm text-gray-400">
+                Page {pagination.currentPage} of {pagination.totalPages}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPagination(prev => ({ ...prev, currentPage: prev.currentPage + 1 }))}
+                disabled={!pagination.hasNextPage}
+              >
+                Next
+              </Button>
+            </div>
+          )}
         </div>
-        )}
         
         {/* Bottom Navigation */}
         <Navigation />

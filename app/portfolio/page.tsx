@@ -16,7 +16,8 @@ import {
   Clock,
   XCircle,
   Loader2,
-  PieChart
+  PieChart,
+  Activity
 } from 'lucide-react'
 import { Button } from '../../components/ui/Button'
 import { Card } from '../../components/ui/Card'
@@ -30,7 +31,6 @@ import { orderApi } from '../../lib/api'
 import SellTokenModal from '../../components/SellTokenModal'
 import TransactionSuccessModal from '../../components/TransactionSuccessModal'
 import { usePortfolio } from '../../hooks/usePortfolio'
-import WalletCheck from '../../components/WalletCheck';
 
 export default function PortfolioPage() {
   const { 
@@ -51,6 +51,16 @@ export default function PortfolioPage() {
   const [successData, setSuccessData] = useState<any>(null)
   const [showProcessingModal, setShowProcessingModal] = useState(false)
   const [processingMessage, setProcessingMessage] = useState('')
+  
+  // New state for PnL and Volume data
+  const [pnlData, setPnlData] = useState<any>({
+    totalRealizedPnL: 0,
+    totalUnrealizedPnL: 0
+  })
+  const [volumeData, setVolumeData] = useState<any>({
+    totalVolume: 0
+  })
+  const [isLoadingPnL, setIsLoadingPnL] = useState(false)
 
   const handleBuyMore = (contractAddress: string) => {
     // Navigate to stocks page with the token pre-selected
@@ -78,6 +88,38 @@ export default function PortfolioPage() {
     // Refresh portfolio data
     setTimeout(() => refreshPortfolio(), 2000)
   }
+
+  // Fetch PnL and Volume data
+  const fetchPnLAndVolume = async () => {
+    if (!useDynamicWallet().walletAddress) return
+    
+    setIsLoadingPnL(true)
+    try {
+      const [realizedPnLResponse, volumeResponse, holdingsResponse] = await Promise.all([
+        orderApi.getUserRealizedPnL(useDynamicWallet().walletAddress),
+        orderApi.getUserVolume(useDynamicWallet().walletAddress),
+        orderApi.getUserHoldings(useDynamicWallet().walletAddress)
+      ])
+
+      setPnlData({
+        totalRealizedPnL: realizedPnLResponse.totalRealizedPnL || 0,
+        totalUnrealizedPnL: holdingsResponse.totalUnrealizedPnL || 0
+      })
+      
+      setVolumeData({
+        totalVolume: volumeResponse.volume?.totalVolume || 0
+      })
+    } catch (error) {
+      console.error('Error fetching PnL and Volume data:', error)
+    } finally {
+      setIsLoadingPnL(false)
+    }
+  }
+
+  // Fetch data on component mount
+  useEffect(() => {
+    fetchPnLAndVolume()
+  }, [useDynamicWallet().walletAddress])
 
   if (isLoading) {
     return (
@@ -111,8 +153,7 @@ export default function PortfolioPage() {
   }
 
   return (
-    <WalletCheck>
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black">
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black">
       {/* Header */}
               <PageHeader showProfile={true} />
 
@@ -134,6 +175,61 @@ export default function PortfolioPage() {
             <p className="text-blue-200 text-sm">Total Invested: ${totalInvested.toLocaleString()}</p>
           </div>
         </Card>
+
+        {/* PnL and Volume Cards */}
+        <div className="grid grid-cols-1 gap-3">
+          {/* Total PnL Card */}
+          <Card className="p-4">
+            <div className="flex items-center justify-between mb-2">
+              <div className="w-8 h-8 bg-gradient-to-br from-green-500 to-green-600 rounded-lg flex items-center justify-center">
+                <TrendingUp className="w-4 h-4 text-white" />
+              </div>
+              <span className="text-xs text-gray-400">Total P&L</span>
+            </div>
+            {isLoadingPnL ? (
+              <div className="flex items-center gap-2">
+                <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
+                <span className="text-gray-400">Loading...</span>
+              </div>
+            ) : (
+              <>
+                <div className={`text-2xl font-bold ${
+                  (pnlData.totalRealizedPnL + pnlData.totalUnrealizedPnL) >= 0 ? 'text-green-400' : 'text-red-400'
+                }`}>
+                  {(pnlData.totalRealizedPnL + pnlData.totalUnrealizedPnL) >= 0 ? '+' : ''}${(pnlData.totalRealizedPnL + pnlData.totalUnrealizedPnL).toFixed(2)}
+                </div>
+                <div className="text-sm text-gray-400">
+                  Realized: ${pnlData.totalRealizedPnL.toFixed(2)} | Unrealized: ${pnlData.totalUnrealizedPnL.toFixed(2)}
+                </div>
+              </>
+            )}
+          </Card>
+
+          {/* Volume Card */}
+          <Card className="p-4">
+            <div className="flex items-center justify-between mb-2">
+              <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
+                <Activity className="w-4 h-4 text-white" />
+              </div>
+              <span className="text-xs text-gray-400">Total Volume</span>
+            </div>
+            {isLoadingPnL ? (
+              <div className="flex items-center gap-2">
+                <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
+                <span className="text-gray-400">Loading...</span>
+              </div>
+            ) : (
+              <>
+                <div className="text-2xl font-bold text-white">
+                  ${volumeData.totalVolume.toLocaleString()}
+                </div>
+                <div className="text-sm text-gray-400">
+                  Lifetime trading volume
+                </div>
+              </>
+            )}
+          </Card>
+        </div>
 
         {/* Portfolio Stats */}
         <div className="grid grid-cols-2 gap-3">
@@ -157,7 +253,10 @@ export default function PortfolioPage() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={refreshPortfolio}
+              onClick={() => {
+                refreshPortfolio()
+                fetchPnLAndVolume()
+              }}
               className="text-gray-400 hover:text-usdt"
             >
               <RefreshCw className="w-4 h-4" />
@@ -286,6 +385,5 @@ export default function PortfolioPage() {
         </div>
       )}
     </div>
-    </WalletCheck>
   )
 } 

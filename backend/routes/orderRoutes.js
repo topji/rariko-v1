@@ -390,6 +390,78 @@ router.get('/getUserRealizedPnL', async (req, res) => {
   }
 });
 
+// @route   GET /api/orders/getAllOrders
+// @desc    Get all orders with user information for dashboard
+// @access  Public
+router.get('/getAllOrders', async (req, res) => {
+  try {
+    const { userAddress, limit = 50, page = 1 } = req.query;
+    
+    // Build query
+    let query = {};
+    if (userAddress) {
+      query.userAddress = userAddress;
+    }
+    
+    // Calculate pagination
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    
+    // Get orders with pagination
+    const orders = await Order.find(query)
+      .sort({ timestamp: -1 })
+      .skip(skip)
+      .limit(parseInt(limit))
+      .lean();
+    
+    // Get unique user addresses from orders
+    const userAddresses = [...new Set(orders.map(order => order.userAddress))];
+    
+    // Fetch user information for all addresses
+    const users = await User.find({ walletAddress: { $in: userAddresses } }).lean();
+    const userMap = {};
+    users.forEach(user => {
+      userMap[user.walletAddress] = user;
+    });
+    
+    // Format orders with user information
+    const formattedOrders = orders.map(order => {
+      const user = userMap[order.userAddress];
+      return {
+        id: order._id,
+        userAddress: order.userAddress,
+        username: user?.username || 'Unknown',
+        symbol: order.symbol,
+        tokenAmount: order.tokenAmount,
+        amountInUsd: order.amountInUsd,
+        amountInSol: order.amountInSol,
+        type: order.type,
+        txHash: order.txHash,
+        feeInUsd: order.feeInUsd,
+        tokenPrice: order.tokenPrice,
+        realizedPNL: order.realizedPNL,
+        timestamp: order.timestamp
+      };
+    });
+    
+    // Get total count for pagination
+    const totalOrders = await Order.countDocuments(query);
+    
+    res.json({
+      orders: formattedOrders,
+      pagination: {
+        currentPage: parseInt(page),
+        totalPages: Math.ceil(totalOrders / parseInt(limit)),
+        totalOrders,
+        hasNextPage: skip + orders.length < totalOrders,
+        hasPrevPage: parseInt(page) > 1
+      }
+    });
+  } catch (error) {
+    console.error('Error getting all orders:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 // @route   GET /api/orders/getUserHoldings
 // @desc    Get user's current token holdings with unrealized PnL
 // @access  Public
