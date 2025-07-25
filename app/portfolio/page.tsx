@@ -177,7 +177,7 @@ export default function PortfolioPage() {
         </Card>
 
         {/* PnL and Volume Cards */}
-        <div className="grid grid-cols-1 gap-3">
+        <div className="grid grid-cols-2 gap-3">
           {/* Total PnL Card */}
           <Card className="p-4">
             <div className="flex items-center justify-between mb-2">
@@ -228,21 +228,6 @@ export default function PortfolioPage() {
                 </div>
               </>
             )}
-          </Card>
-        </div>
-
-        {/* Portfolio Stats */}
-        <div className="grid grid-cols-2 gap-3">
-          <Card className="p-4 text-center">
-            <DollarSign className="w-6 h-6 mx-auto mb-2 text-usdt" />
-            <div className="text-lg font-semibold text-white">{holdings.length}</div>
-            <div className="text-gray-400 text-sm">Tokens</div>
-          </Card>
-          
-          <Card className="p-4 text-center">
-            <Percent className="w-6 h-6 mx-auto mb-2 text-green-400" />
-            <div className="text-lg font-semibold text-white">{totalChangePercent.toFixed(2)}%</div>
-            <div className="text-gray-400 text-sm">Total Return</div>
           </Card>
         </div>
 
