@@ -461,27 +461,4 @@ router.get('/getUserHoldings', async (req, res) => {
   }
 });
 
-// @route   GET /api/orders/getAllOrders
-// @desc    Get all orders (for social feed/history)
-// @access  Public
-router.get('/getAllOrders', async (req, res) => {
-  try {
-    const { limit = 100, skip = 0, sortBy = 'timestamp', sortOrder = 'desc', userAddress } = req.query;
-    const query = {};
-    if (userAddress) {
-      query.userAddress = userAddress;
-    }
-    const sort = {};
-    sort[sortBy] = sortOrder === 'desc' ? -1 : 1;
-    const orders = await Order.find(query)
-      .sort(sort)
-      .skip(parseInt(skip))
-      .limit(parseInt(limit));
-    res.json({ orders, count: orders.length });
-  } catch (error) {
-    console.error('Error getting all orders:', error);
-    res.status(500).json({ error: 'Server error' });
-  }
-});
-
 module.exports = router; 
