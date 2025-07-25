@@ -62,12 +62,9 @@ const orderSchema = new mongoose.Schema({
   }
 });
 
-// Indexes for better query performance
-orderSchema.index({ userAddress: 1, timestamp: -1 });
-orderSchema.index({ type: 1 });
-orderSchema.index({ symbol: 1 });
-orderSchema.index({ txHash: 1 });
-orderSchema.index({ timestamp: -1 });
+// No indexes for now - can be added back when collection grows
+// orderSchema.index({ userAddress: 1, timestamp: -1 }); // Primary index for user queries
+// orderSchema.index({ symbol: 1, timestamp: -1 }); // For token volume queries
 
 // Static method to get user orders
 orderSchema.statics.getUserOrders = async function(userAddress, options = {}) {
