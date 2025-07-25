@@ -554,7 +554,7 @@ export default function StocksPage() {
               </div>
             </div>
           </div>
-        )}
+      )}
     </div>
     </WalletCheck>
   )

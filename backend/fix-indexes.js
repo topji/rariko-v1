@@ -3,117 +3,114 @@ require('dotenv').config({ path: './config.env' });
 
 async function fixIndexes() {
   try {
-    // Connect to MongoDB
+    console.log('🔧 FIXING INDEXES: Comprehensive index cleanup...');
     await mongoose.connect(process.env.MONGODB_URI);
-    console.log('Connected to MongoDB');
+    console.log('✅ Connected to MongoDB');
 
-    // Get the orders collection
     const db = mongoose.connection.db;
     const ordersCollection = db.collection('orders');
 
-    console.log('Checking current indexes...');
-    
-    // List all current indexes
-    const indexes = await ordersCollection.indexes();
-    console.log('Current indexes:');
-    indexes.forEach(index => {
-      console.log(`- ${index.name}: ${JSON.stringify(index.key)}`);
+    // Get current indexes
+    console.log('\n📊 Current indexes before fix:');
+    const currentIndexes = await ordersCollection.indexes();
+    currentIndexes.forEach((index, i) => {
+      console.log(`${i + 1}. ${index.name}:`, JSON.stringify(index.key));
     });
 
-    console.log('\nDropping old indexes...');
-    
-    // Drop specific problematic indexes first
-    const problematicIndexes = ['buyTxHash_1', 'user_1_createdAt_-1', 'orderType_1_status_1', 'tokenSymbol_1', 'transactionHash_1', 'createdAt_-1'];
-    
-    for (const indexName of problematicIndexes) {
+    // List of ALL possible problematic indexes
+    const allPossibleIndexes = [
+      'buyTxHash_1',
+      'user_1_createdAt_-1',
+      'orderType_1_status_1',
+      'tokenSymbol_1',
+      'transactionHash_1',
+      'createdAt_-1',
+      'userAddress_1_timestamp_-1',
+      'symbol_1_timestamp_-1',
+      'type_1',
+      'symbol_1',
+      'txHash_1',
+      'timestamp_-1',
+      'userAddress_1',
+      'tokenAddress_1',
+      'walletAddress_1',
+      'tokenContractAddress_1'
+    ];
+
+    console.log('\n🗑️ Attempting to drop all possible indexes...');
+    for (const indexName of allPossibleIndexes) {
       try {
-        console.log(`Attempting to drop index: ${indexName}`);
         await ordersCollection.dropIndex(indexName);
-        console.log(`✅ Successfully dropped index: ${indexName}`);
+        console.log(`✅ Dropped index: ${indexName}`);
       } catch (error) {
-        if (error.code === 27) {
-          console.log(`ℹ️ Index ${indexName} doesn't exist, skipping...`);
+        if (error.code === 26) {
+          console.log(`ℹ️ Index doesn't exist: ${indexName}`);
         } else {
-          console.log(`⚠️ Error dropping index ${indexName}:`, error.message);
+          console.log(`⚠️ Error dropping ${indexName}:`, error.message);
         }
       }
     }
 
-    // Drop any remaining indexes except _id
-    const remainingIndexes = await ordersCollection.indexes();
-    for (const index of remainingIndexes) {
-      if (index.name !== '_id_') {
-        try {
-          console.log(`Dropping remaining index: ${index.name}`);
-          await ordersCollection.dropIndex(index.name);
-          console.log(`✅ Dropped index: ${index.name}`);
-        } catch (error) {
-          console.log(`⚠️ Error dropping index ${index.name}:`, error.message);
+    // Drop all indexes except _id (nuclear approach)
+    console.log('\n🚨 Nuclear approach: Dropping ALL indexes except _id...');
+    try {
+      const allIndexes = await ordersCollection.indexes();
+      for (const index of allIndexes) {
+        if (index.name !== '_id_') {
+          try {
+            await ordersCollection.dropIndex(index.name);
+            console.log(`✅ Dropped: ${index.name}`);
+          } catch (error) {
+            console.log(`⚠️ Couldn't drop ${index.name}:`, error.message);
+          }
         }
       }
-    }
-
-    console.log('\nCreating new indexes...');
-    
-    // Create new indexes for the simplified Order model
-    try {
-      await ordersCollection.createIndex({ userAddress: 1, timestamp: -1 });
-      console.log('✅ Created index: userAddress_1_timestamp_-1');
     } catch (error) {
-      console.log('⚠️ Error creating userAddress index:', error.message);
+      console.log('⚠️ Nuclear drop failed:', error.message);
     }
 
-    try {
-      await ordersCollection.createIndex({ type: 1 });
-      console.log('✅ Created index: type_1');
-    } catch (error) {
-      console.log('⚠️ Error creating type index:', error.message);
-    }
-
-    try {
-      await ordersCollection.createIndex({ symbol: 1 });
-      console.log('✅ Created index: symbol_1');
-    } catch (error) {
-      console.log('⚠️ Error creating symbol index:', error.message);
-    }
-
-    try {
-      await ordersCollection.createIndex({ txHash: 1 });
-      console.log('✅ Created index: txHash_1');
-    } catch (error) {
-      console.log('⚠️ Error creating txHash index:', error.message);
-    }
-
-    try {
-      await ordersCollection.createIndex({ timestamp: -1 });
-      console.log('✅ Created index: timestamp_-1');
-    } catch (error) {
-      console.log('⚠️ Error creating timestamp index:', error.message);
-    }
-
-    console.log('\nIndexes fixed successfully!');
-    
-    // List all indexes to verify
+    // Verify final state
+    console.log('\n🔍 Final index state:');
     const finalIndexes = await ordersCollection.indexes();
-    console.log('\nFinal indexes:');
+    console.log('Total indexes:', finalIndexes.length);
     finalIndexes.forEach(index => {
-      console.log(`- ${index.name}: ${JSON.stringify(index.key)}`);
+      console.log(`- ${index.name}:`, JSON.stringify(index.key));
     });
 
-    // Check if the problematic index still exists
-    const buyTxHashIndex = finalIndexes.find(index => index.name === 'buyTxHash_1');
-    if (buyTxHashIndex) {
-      console.log('\n❌ WARNING: buyTxHash_1 index still exists!');
-      console.log('This might cause issues. Please check manually.');
-    } else {
-      console.log('\n✅ buyTxHash_1 index successfully removed!');
+    // Test document insertion
+    console.log('\n🧪 Testing document insertion...');
+    try {
+      const testDoc = {
+        tokenAddress: 'TEST_TOKEN',
+        symbol: 'TEST',
+        userAddress: 'TEST_USER',
+        amountInUsd: 1,
+        tokenAmount: 1,
+        amountInSol: 0.01,
+        type: 'BUY',
+        txHash: 'TEST_TX_HASH',
+        feeInUsd: 0.01,
+        tokenPrice: 1,
+        timestamp: new Date(),
+        realizedPNL: null
+      };
+
+      const result = await ordersCollection.insertOne(testDoc);
+      console.log('✅ Test document inserted successfully:', result.insertedId);
+
+      // Clean up test document
+      await ordersCollection.deleteOne({ _id: result.insertedId });
+      console.log('✅ Test document cleaned up');
+    } catch (error) {
+      console.error('❌ Test insertion failed:', error.message);
     }
 
-  } catch (error) {
-    console.error('Error fixing indexes:', error);
-  } finally {
     await mongoose.disconnect();
-    console.log('Disconnected from MongoDB');
+    console.log('\n✅ Index fix completed!');
+    console.log('🚀 Restart your backend now');
+  } catch (error) {
+    console.error('❌ Error:', error);
+    process.exit(1);
   }
 }
 
