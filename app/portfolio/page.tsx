@@ -148,96 +148,106 @@ export default function PortfolioPage() {
               <PageHeader showProfile={true} />
       <div className="px-4 py-6 space-y-6">
           {/* Portfolio Stats Cards */}
-          <div className="grid grid-cols-2 gap-4">
-            {/* Portfolio Value */}
-            <Card className="bg-gradient-to-br from-blue-600 to-blue-700 text-white">
-              <div className="p-4 text-center">
+          <div className="space-y-4">
+            {/* Portfolio Value - Big Green Card */}
+            <Card className="bg-gradient-to-br from-usdt to-primary-600 text-white">
+              <div className="p-6 text-center">
                 <div className="flex items-center justify-center mb-2">
-                  <DollarSign className="w-5 h-5 mr-2" />
-                  <span className="text-sm font-medium">Portfolio Value</span>
+                  <DollarSign className="w-6 h-6 mr-2" />
+                  <span className="text-lg font-medium">Portfolio Value</span>
                 </div>
-                <div className="text-xl font-bold">${portfolioData.portfolioValue.toLocaleString()}</div>
+                <div className="text-3xl font-bold">${portfolioData.portfolioValue.toLocaleString()}</div>
               </div>
             </Card>
 
-            {/* Total PnL */}
-            <Card className={`bg-gradient-to-br ${portfolioData.totalProfitLoss >= 0 ? 'from-green-600 to-green-700' : 'from-red-600 to-red-700'} text-white`}>
-              <div className="p-4 text-center">
-                <div className="flex items-center justify-center mb-2">
-                  <TrendingUp className="w-5 h-5 mr-2" />
-                  <span className="text-sm font-medium">Total PnL</span>
-                </div>
-                <div className="text-xl font-bold">
-                  {portfolioData.totalProfitLoss >= 0 ? '+' : ''}${portfolioData.totalProfitLoss.toFixed(2)}
-            </div>
-          </div>
-        </Card>
-
-            {/* Unrealized PnL */}
-            <Card className={`bg-gradient-to-br ${portfolioData.unrealizedPnL >= 0 ? 'from-emerald-600 to-emerald-700' : 'from-orange-600 to-orange-700'} text-white`}>
-              <div className="p-4 text-center">
-                <div className="flex items-center justify-center mb-2">
-                  <Percent className="w-5 h-5 mr-2" />
-                  <span className="text-sm font-medium">Unrealized PnL</span>
-                </div>
-                <div className="text-lg font-bold">
-                  {portfolioData.unrealizedPnL >= 0 ? '+' : ''}${portfolioData.unrealizedPnL.toFixed(2)}
-                </div>
-              </div>
-          </Card>
-          
-            {/* Volume */}
-            <Card className="bg-gradient-to-br from-purple-600 to-purple-700 text-white">
-              <div className="p-4 text-center">
-                <div className="flex items-center justify-center mb-2">
-                  <BarChart3 className="w-5 h-5 mr-2" />
-                  <span className="text-sm font-medium">Volume</span>
-                </div>
-                <div className="text-xl font-bold">${portfolioData.totalVolume.toLocaleString()}</div>
-              </div>
-          </Card>
-        </div>
-
-        {/* Holdings */}
-        <div>
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-white">Holdings</h3>
-          </div>
-            {portfolioData.holdings.length === 0 ? (
-            <Card className="p-8 text-center">
-              <PieChart className="w-12 h-12 mx-auto mb-4 text-gray-500" />
-              <h4 className="text-lg font-semibold text-white mb-2">No Holdings</h4>
-              <p className="text-gray-400 mb-4">You don't have any tokens in your portfolio yet.</p>
-                <Button onClick={() => window.location.href = '/stocks'} className="bg-usdt hover:bg-primary-600">Buy Your First Token</Button>
-            </Card>
-          ) : (
-          <div className="space-y-3">
-                {portfolioData.holdings.map((holding: any) => (
-                  <Card key={holding.tokenAddress} className="p-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-gray-700 rounded-xl flex items-center justify-center">
-                        <span className="text-white font-bold text-sm">{holding.symbol[0]}</span>
-                      </div>
-                      <div>
-                        <h4 className="font-semibold text-white">{holding.symbol}</h4>
-                            <p className="text-gray-400 text-xs">Avg Buy: ${holding.averageBuyPrice?.toFixed(4)}</p>
-                            <p className="text-gray-400 text-xs">Current: {holding.currentHoldings} {holding.symbol}</p>
-                      </div>
-                    </div>
+            {/* PnL and Volume Cards - Gray Theme */}
+            <div className="grid grid-cols-2 gap-4">
+              {/* Profit/Loss Card */}
+              <Card className="bg-gray-800 border-gray-700 text-white">
+                <div className="p-4 text-center">
+                  <div className="flex items-center justify-center mb-2">
+                    <TrendingUp className="w-5 h-5 mr-2" />
+                    <span className="text-sm font-medium">Profit/Loss</span>
                   </div>
-                  <div className="text-right">
-                        <div className="font-semibold text-white">${(holding.currentHoldings * holding.averageBuyPrice).toFixed(2)}</div>
-                        <div className="text-gray-400 text-xs">Total Invested: ${holding.totalBoughtValue.toFixed(2)}</div>
-                    </div>
+                  <div className="text-xl font-bold mb-1">
+                    {portfolioData.totalProfitLoss >= 0 ? '+' : ''}${portfolioData.totalProfitLoss.toFixed(2)}
+                  </div>
+                  <div className="text-sm text-gray-400">
+                    Unrealized: {portfolioData.unrealizedPnL >= 0 ? '+' : ''}${portfolioData.unrealizedPnL.toFixed(2)}
+                  </div>
                 </div>
               </Card>
-            ))}
+
+              {/* Volume Card */}
+              <Card className="bg-gray-800 border-gray-700 text-white">
+                <div className="p-4 text-center">
+                  <div className="flex items-center justify-center mb-2">
+                    <BarChart3 className="w-5 h-5 mr-2" />
+                    <span className="text-sm font-medium">Total Volume</span>
+                  </div>
+                  <div className="text-xl font-bold">${portfolioData.totalVolume.toLocaleString()}</div>
+                </div>
+              </Card>
+            </div>
           </div>
-          )}
+
+          {/* Holdings */}
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-white">Holdings</h3>
+            </div>
+            {portfolioData.holdings.length === 0 ? (
+              <Card className="p-8 text-center">
+                <PieChart className="w-12 h-12 mx-auto mb-4 text-gray-500" />
+                <h4 className="text-lg font-semibold text-white mb-2">No Holdings</h4>
+                <p className="text-gray-400 mb-4">You don't have any tokens in your portfolio yet.</p>
+                <Button onClick={() => window.location.href = '/stocks'} className="bg-usdt hover:bg-primary-600">Buy Your First Token</Button>
+              </Card>
+            ) : (
+              <div className="space-y-3">
+                {portfolioData.holdings.map((holding: any) => (
+                  <Card key={holding.tokenAddress} className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-gray-700 rounded-xl flex items-center justify-center">
+                            <span className="text-white font-bold text-sm">{holding.symbol[0]}</span>
+                          </div>
+                          <div>
+                            <h4 className="font-semibold text-white">{holding.symbol}</h4>
+                            <p className="text-gray-400 text-xs">Avg Buy: ${holding.averageBuyPrice?.toFixed(4)}</p>
+                            <p className="text-gray-400 text-xs">Current: {holding.currentHoldings} {holding.symbol}</p>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-right mr-4">
+                        <div className="font-semibold text-white">${(holding.currentHoldings * holding.averageBuyPrice).toFixed(2)}</div>
+                        <div className="text-gray-400 text-xs">Total Invested: ${holding.totalBoughtValue.toFixed(2)}</div>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          onClick={() => handleBuyMore(holding.tokenAddress)}
+                          className="text-xs px-3 py-1"
+                        >
+                          Buy More
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          onClick={() => handleSell(holding)}
+                          className="text-xs px-3 py-1 bg-red-600 hover:bg-red-700"
+                        >
+                          Sell
+                        </Button>
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
-      </div>
       <Navigation />
       </div>
       {/* Sell Modal */}
