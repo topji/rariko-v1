@@ -77,6 +77,7 @@ router.post('/createBuyOrder', validateOrderData, async (req, res) => {
       realizedPNL
     } = req.body;
     
+    console.log('req.body is valid');
     // Create buy order
     const order = new Order({
       tokenAddress,
@@ -92,12 +93,16 @@ router.post('/createBuyOrder', validateOrderData, async (req, res) => {
       timestamp: new Date(),
       realizedPNL: null // No PNL for buy orders
     });
-    
+    console.log('order is being created');
     await order.save();
+
+    console.log('order is created');
     
     // Update user's total volume
     const user = await getUserByWalletAddress(userAddress);
+    console.log('user is being updated');
     await user.updateVolume(amountInUsd);
+    console.log('user is updated');
     
     res.status(201).json({
       message: 'Buy order created successfully',
@@ -121,7 +126,7 @@ router.post('/createBuyOrder', validateOrderData, async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
     
-    res.status(500).json({ error: 'Server error' });
+    res.status(500).json({ error: error.message });
   }
 });
 
@@ -142,7 +147,7 @@ router.post('/createSellOrder', validateOrderData, async (req, res) => {
       tokenPrice,
       realizedPNL
     } = req.body;
-    
+    console.log('req.body is valid');
     // Create sell order
     const order = new Order({
       tokenAddress,
@@ -158,13 +163,14 @@ router.post('/createSellOrder', validateOrderData, async (req, res) => {
       timestamp: new Date(),
       realizedPNL: realizedPNL || null
     });
-    
+    console.log('order is being created');
     await order.save();
-    
+    console.log('order is created');
     // Update user's total volume
     const user = await getUserByWalletAddress(userAddress);
+    console.log('user is being updated');
     await user.updateVolume(amountInUsd);
-    
+    console.log('user is updated');
     res.status(201).json({
       message: 'Sell order created successfully',
       order: {
@@ -182,13 +188,13 @@ router.post('/createSellOrder', validateOrderData, async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Error creating sell order:', error);
+    console.error('Error creating sell order:', error.message);
     
     if (error.message === 'User not found') {
       return res.status(404).json({ error: 'User not found' });
     }
     
-    res.status(500).json({ error: 'Server error' });
+    res.status(500).json({ error: error.message });
   }
 });
 
