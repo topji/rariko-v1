@@ -5,30 +5,46 @@ const router = express.Router();
 
 // Middleware to validate order data
 const validateOrderData = (req, res, next) => {
-  const { walletAddress, tokenSymbol, tokenAddress, amount, price, totalValue } = req.body;
+  const { userAddress, symbol, tokenAddress, amountInUsd, tokenAmount, amountInSol, type, txHash, feeInUsd, tokenPrice } = req.body;
   
-  if (!walletAddress) {
-    return res.status(400).json({ error: 'Wallet address is required' });
+  if (!userAddress) {
+    return res.status(400).json({ error: 'User address is required' });
   }
   
-  if (!tokenSymbol) {
-    return res.status(400).json({ error: 'Token symbol is required' });
+  if (!symbol) {
+    return res.status(400).json({ error: 'Symbol is required' });
   }
   
   if (!tokenAddress) {
     return res.status(400).json({ error: 'Token address is required' });
   }
   
-  if (!amount || amount <= 0) {
-    return res.status(400).json({ error: 'Valid amount is required' });
+  if (!amountInUsd || amountInUsd <= 0) {
+    return res.status(400).json({ error: 'Valid amount in USD is required' });
   }
   
-  if (!price || price <= 0) {
-    return res.status(400).json({ error: 'Valid price is required' });
+  if (!tokenAmount || tokenAmount <= 0) {
+    return res.status(400).json({ error: 'Valid token amount is required' });
   }
   
-  if (!totalValue || totalValue <= 0) {
-    return res.status(400).json({ error: 'Valid total value is required' });
+  if (!amountInSol || amountInSol <= 0) {
+    return res.status(400).json({ error: 'Valid amount in SOL is required' });
+  }
+  
+  if (!type || !['BUY', 'SELL'].includes(type)) {
+    return res.status(400).json({ error: 'Valid type (BUY/SELL) is required' });
+  }
+  
+  if (!txHash) {
+    return res.status(400).json({ error: 'Transaction hash is required' });
+  }
+  
+  if (!feeInUsd || feeInUsd < 0) {
+    return res.status(400).json({ error: 'Valid fee in USD is required' });
+  }
+  
+  if (!tokenPrice || tokenPrice <= 0) {
+    return res.status(400).json({ error: 'Valid token price is required' });
   }
   
   next();
@@ -44,59 +60,58 @@ const getUserByWalletAddress = async (walletAddress) => {
 };
 
 // @route   POST /api/orders/createBuyOrder
-// @desc    Create a completed buy order
+// @desc    Create a buy order
 // @access  Public
 router.post('/createBuyOrder', validateOrderData, async (req, res) => {
   try {
     const { 
-      walletAddress, 
-      tokenSymbol, 
+      userAddress, 
+      symbol, 
       tokenAddress, 
-      amount, 
-      price, 
-      totalValue,
-      metadata,
-      transactionHash,
-      tokenAmount,
-      feeInUSD
+      amountInUsd, 
+      tokenAmount, 
+      amountInSol, 
+      txHash, 
+      feeInUsd, 
+      tokenPrice,
+      realizedPNL
     } = req.body;
-    
-    // Get user
-    const user = await getUserByWalletAddress(walletAddress);
     
     // Create buy order
     const order = new Order({
-      user: user._id,
-      orderType: 'BUY',
-      tokenSymbol: tokenSymbol.toUpperCase(),
       tokenAddress,
-      amount,
-      price,
-      totalValue,
-      transactionHash,
-      metadata: {
-        tokenAmount,
-        feeInUSD,
-        timestamp: new Date()
-      }
+      symbol: symbol.toUpperCase(),
+      userAddress,
+      amountInUsd,
+      tokenAmount,
+      amountInSol,
+      type: 'BUY',
+      txHash,
+      feeInUsd,
+      tokenPrice,
+      timestamp: new Date(),
+      realizedPNL: null // No PNL for buy orders
     });
     
     await order.save();
     
     // Update user's total volume
-    await user.updateVolume(totalValue);
+    const user = await getUserByWalletAddress(userAddress);
+    await user.updateVolume(amountInUsd);
     
     res.status(201).json({
       message: 'Buy order created successfully',
       order: {
         id: order._id,
-        orderType: order.orderType,
-        tokenSymbol: order.tokenSymbol,
-        amount: order.amount,
-        price: order.price,
-        totalValue: order.totalValue,
-        transactionHash: order.transactionHash,
-        createdAt: order.createdAt
+        type: order.type,
+        symbol: order.symbol,
+        amountInUsd: order.amountInUsd,
+        tokenAmount: order.tokenAmount,
+        amountInSol: order.amountInSol,
+        txHash: order.txHash,
+        feeInUsd: order.feeInUsd,
+        tokenPrice: order.tokenPrice,
+        timestamp: order.timestamp
       }
     });
   } catch (error) {
@@ -111,59 +126,59 @@ router.post('/createBuyOrder', validateOrderData, async (req, res) => {
 });
 
 // @route   POST /api/orders/createSellOrder
-// @desc    Create a completed sell order
+// @desc    Create a sell order
 // @access  Public
 router.post('/createSellOrder', validateOrderData, async (req, res) => {
   try {
     const { 
-      walletAddress, 
-      tokenSymbol, 
+      userAddress, 
+      symbol, 
       tokenAddress, 
-      amount, 
-      price, 
-      totalValue,
-      metadata,
-      transactionHash,
-      tokenAmount,
-      feeInUSD
+      amountInUsd, 
+      tokenAmount, 
+      amountInSol, 
+      txHash, 
+      feeInUsd, 
+      tokenPrice,
+      realizedPNL
     } = req.body;
-    
-    // Get user
-    const user = await getUserByWalletAddress(walletAddress);
     
     // Create sell order
     const order = new Order({
-      user: user._id,
-      orderType: 'SELL',
-      tokenSymbol: tokenSymbol.toUpperCase(),
       tokenAddress,
-      amount,
-      price,
-      totalValue,
-      transactionHash,
-      metadata: {
-        tokenAmount,
-        feeInUSD,
-        timestamp: new Date()
-      }
+      symbol: symbol.toUpperCase(),
+      userAddress,
+      amountInUsd,
+      tokenAmount,
+      amountInSol,
+      type: 'SELL',
+      txHash,
+      feeInUsd,
+      tokenPrice,
+      timestamp: new Date(),
+      realizedPNL: realizedPNL || null
     });
     
     await order.save();
     
     // Update user's total volume
-    await user.updateVolume(totalValue);
+    const user = await getUserByWalletAddress(userAddress);
+    await user.updateVolume(amountInUsd);
     
     res.status(201).json({
       message: 'Sell order created successfully',
       order: {
         id: order._id,
-        orderType: order.orderType,
-        tokenSymbol: order.tokenSymbol,
-        amount: order.amount,
-        price: order.price,
-        totalValue: order.totalValue,
-        transactionHash: order.transactionHash,
-        createdAt: order.createdAt
+        type: order.type,
+        symbol: order.symbol,
+        amountInUsd: order.amountInUsd,
+        tokenAmount: order.tokenAmount,
+        amountInSol: order.amountInSol,
+        txHash: order.txHash,
+        feeInUsd: order.feeInUsd,
+        tokenPrice: order.tokenPrice,
+        timestamp: order.timestamp,
+        realizedPNL: order.realizedPNL
       }
     });
   } catch (error) {
@@ -183,50 +198,37 @@ router.post('/createSellOrder', validateOrderData, async (req, res) => {
 router.get('/getUserOrders', async (req, res) => {
   try {
     const { 
-      walletAddress, 
-      orderType, 
-      tokenSymbol, 
+      userAddress, 
+      type, 
+      symbol, 
       limit = 50, 
       skip = 0,
-      sortBy = 'createdAt',
+      sortBy = 'timestamp',
       sortOrder = 'desc'
     } = req.query;
     
-    if (!walletAddress) {
-      return res.status(400).json({ error: 'Wallet address is required' });
+    if (!userAddress) {
+      return res.status(400).json({ error: 'User address is required' });
     }
-    
-    // Get user
-    const user = await getUserByWalletAddress(walletAddress);
     
     // Get orders with options
     const options = {
-      orderType,
-      tokenSymbol,
+      type,
+      symbol,
       limit: parseInt(limit),
       skip: parseInt(skip),
       sortBy,
       sortOrder
     };
     
-    const orders = await Order.getUserOrders(user._id, options);
+    const orders = await Order.getUserOrders(userAddress, options);
     
     res.json({
       orders,
-      count: orders.length,
-      user: {
-        id: user._id,
-        username: user.username,
-        displayName: user.displayName
-      }
+      count: orders.length
     });
   } catch (error) {
     console.error('Error getting user orders:', error);
-    
-    if (error.message === 'User not found') {
-      return res.status(404).json({ error: 'User not found' });
-    }
-    
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -237,35 +239,29 @@ router.get('/getUserOrders', async (req, res) => {
 router.get('/getUserVolume', async (req, res) => {
   try {
     const { 
-      walletAddress, 
+      userAddress, 
       startDate, 
       endDate, 
-      orderType, 
-      tokenSymbol 
+      type, 
+      symbol 
     } = req.query;
     
-    if (!walletAddress) {
-      return res.status(400).json({ error: 'Wallet address is required' });
+    if (!userAddress) {
+      return res.status(400).json({ error: 'User address is required' });
     }
-    
-    // Get user
-    const user = await getUserByWalletAddress(walletAddress);
     
     // Get volume with options
     const options = {
       startDate,
       endDate,
-      orderType,
-      tokenSymbol
+      type,
+      symbol
     };
     
-    const volumeData = await Order.getUserVolume(user._id, options);
+    const volumeData = await Order.getUserVolume(userAddress, options);
     
-    // Update user's total volume if needed
-    if (volumeData.totalVolume > user.totalVolume) {
-      user.totalVolume = volumeData.totalVolume;
-      await user.save();
-    }
+    // Get user info
+    const user = await getUserByWalletAddress(userAddress);
     
     res.json({
       user: {
@@ -287,21 +283,21 @@ router.get('/getUserVolume', async (req, res) => {
   }
 });
 
-// @route   GET /api/orders/tokenVolume/:tokenSymbol
+// @route   GET /api/orders/tokenVolume/:symbol
 // @desc    Get total volume for a specific token
 // @access  Public
-router.get('/tokenVolume/:tokenSymbol', async (req, res) => {
+router.get('/tokenVolume/:symbol', async (req, res) => {
   try {
-    const { tokenSymbol } = req.params;
-    const { startDate, endDate, orderType } = req.query;
+    const { symbol } = req.params;
+    const { startDate, endDate, type } = req.query;
     
     const options = {
       startDate,
       endDate,
-      orderType
+      type
     };
     
-    const volumeData = await Order.getTokenVolume(tokenSymbol.toUpperCase(), options);
+    const volumeData = await Order.getTokenVolume(symbol.toUpperCase(), options);
     
     res.json(volumeData);
   } catch (error) {
@@ -319,12 +315,12 @@ router.get('/stats', async (req, res) => {
     
     const query = {};
     
-    if (startDate) query.createdAt = { $gte: new Date(startDate) };
+    if (startDate) query.timestamp = { $gte: new Date(startDate) };
     if (endDate) {
-      if (query.createdAt) {
-        query.createdAt.$lte = new Date(endDate);
+      if (query.timestamp) {
+        query.timestamp.$lte = new Date(endDate);
       } else {
-        query.createdAt = { $lte: new Date(endDate) };
+        query.timestamp = { $lte: new Date(endDate) };
       }
     }
     
@@ -332,18 +328,129 @@ router.get('/stats', async (req, res) => {
     
     const stats = {
       totalOrders: orders.length,
-      totalVolume: orders.reduce((sum, order) => sum + order.totalValue, 0),
-      buyOrders: orders.filter(o => o.orderType === 'BUY').length,
-      sellOrders: orders.filter(o => o.orderType === 'SELL').length,
-      buyVolume: orders.filter(o => o.orderType === 'BUY').reduce((sum, o) => sum + o.totalValue, 0),
-      sellVolume: orders.filter(o => o.orderType === 'SELL').reduce((sum, o) => sum + o.totalValue, 0),
-      uniqueUsers: new Set(orders.map(o => o.user.toString())).size,
-      uniqueTokens: new Set(orders.map(o => o.tokenSymbol)).size
+      totalVolume: orders.reduce((sum, order) => sum + order.amountInUsd, 0),
+      buyOrders: orders.filter(o => o.type === 'BUY').length,
+      sellOrders: orders.filter(o => o.type === 'SELL').length,
+      buyVolume: orders.filter(o => o.type === 'BUY').reduce((sum, o) => sum + o.amountInUsd, 0),
+      sellVolume: orders.filter(o => o.type === 'SELL').reduce((sum, o) => sum + o.amountInUsd, 0),
+      uniqueUsers: new Set(orders.map(o => o.userAddress)).size,
+      uniqueTokens: new Set(orders.map(o => o.symbol)).size
     };
     
     res.json(stats);
   } catch (error) {
     console.error('Error getting trading stats:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// @route   GET /api/orders/getUserRealizedPnL
+// @desc    Get user's total realized PnL from sell orders
+// @access  Public
+router.get('/getUserRealizedPnL', async (req, res) => {
+  try {
+    const { userAddress } = req.query;
+    
+    if (!userAddress) {
+      return res.status(400).json({ error: 'User address is required' });
+    }
+    
+    // Get all sell orders with realized PnL
+    const sellOrders = await Order.find({ 
+      userAddress, 
+      type: 'SELL',
+      realizedPNL: { $ne: null }
+    });
+    
+    const totalRealizedPnL = sellOrders.reduce((total, order) => {
+      return total + (order.realizedPNL || 0);
+    }, 0);
+    
+    res.json({
+      totalRealizedPnL,
+      sellOrdersCount: sellOrders.length,
+      orders: sellOrders.map(order => ({
+        id: order._id,
+        symbol: order.symbol,
+        tokenAmount: order.tokenAmount,
+        amountInUsd: order.amountInUsd,
+        realizedPNL: order.realizedPNL,
+        timestamp: order.timestamp
+      }))
+    });
+  } catch (error) {
+    console.error('Error getting user realized PnL:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// @route   GET /api/orders/getUserHoldings
+// @desc    Get user's current token holdings with unrealized PnL
+// @access  Public
+router.get('/getUserHoldings', async (req, res) => {
+  try {
+    const { userAddress } = req.query;
+    
+    if (!userAddress) {
+      return res.status(400).json({ error: 'User address is required' });
+    }
+    
+    // Get all orders for the user
+    const orders = await Order.find({ userAddress }).sort({ timestamp: 1 });
+    
+    // Calculate holdings for each token
+    const holdings = {};
+    
+    orders.forEach(order => {
+      const symbol = order.symbol;
+      
+      if (!holdings[symbol]) {
+        holdings[symbol] = {
+          symbol,
+          tokenAddress: order.tokenAddress,
+          totalBought: 0,
+          totalBoughtValue: 0,
+          totalSold: 0,
+          totalSoldValue: 0,
+          averageBuyPrice: 0,
+          currentHoldings: 0,
+          totalRealizedPnL: 0
+        };
+      }
+      
+      if (order.type === 'BUY') {
+        holdings[symbol].totalBought += order.tokenAmount;
+        holdings[symbol].totalBoughtValue += order.amountInUsd;
+      } else if (order.type === 'SELL') {
+        holdings[symbol].totalSold += order.tokenAmount;
+        holdings[symbol].totalSoldValue += order.amountInUsd;
+        if (order.realizedPNL) {
+          holdings[symbol].totalRealizedPnL += order.realizedPNL;
+        }
+      }
+    });
+    
+    // Calculate current holdings and average buy price
+    Object.keys(holdings).forEach(symbol => {
+      const holding = holdings[symbol];
+      holding.currentHoldings = holding.totalBought - holding.totalSold;
+      
+      if (holding.totalBought > 0) {
+        holding.averageBuyPrice = holding.totalBoughtValue / holding.totalBought;
+      }
+      
+      // Remove tokens with zero holdings
+      if (holding.currentHoldings <= 0) {
+        delete holdings[symbol];
+      }
+    });
+    
+    res.json({
+      holdings: Object.values(holdings),
+      totalHoldings: Object.keys(holdings).length
+    });
+  } catch (error) {
+    console.error('Error getting user holdings:', error);
     res.status(500).json({ error: 'Server error' });
   }
 });

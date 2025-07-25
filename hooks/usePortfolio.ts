@@ -2,8 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { useDynamicWallet } from './useDynamicWallet'
 import { useDynamicContext } from '@dynamic-labs/sdk-react-core'
 import axios from 'axios'
-import { Connection, PublicKey } from '@solana/web3.js'
-import { getAccount, getAssociatedTokenAddress } from '@solana/spl-token'
+import { orderApi } from '../lib/api'
 
 interface TokenHolding {
   symbol: string
@@ -15,6 +14,12 @@ interface TokenHolding {
   totalValue: number
   decimals: number
   change24h?: number
+  averageBuyPrice: number
+  unrealizedPnL: number
+  unrealizedPnLPercent: number
+  totalBought: number
+  totalBoughtValue: number
+  totalRealizedPnL: number
 }
 
 interface PortfolioData {
@@ -26,25 +31,6 @@ interface PortfolioData {
   isLoading: boolean
   error?: string
 }
-
-// Stock token addresses
-const STOCK_TOKEN_ADDRESSES = [
-  'Xsc9qvGR1efVDFGLrVsmkzv3qi45LTBjeUKSPmx9qEh',
-  'XsCPL9dNWBMvFtTmwcCA5v3xWPSMEBCszbQdiLLq6aN',
-  'Xs3eBt7uRfJX8QUs4suhyU8p2M6DoUDrJyWBa8LLZsg',
-  'XsbEhLAtcf6HdfpFZ5xEMdqW8nfAvcsP5bdudRLJzJp',
-  'XsueG8BtpquVJX9LVLLEGuViXUungE6WmK5YZ3p3bd1',
-  'Xs7ZdzSHLU9ftNJsii5fCeJhoRWSC32SQGzGQtePxNu',
-  'Xsf9mBktVB9BSU5kf4nHxPq5hCBJ2j2ui3ecFGxPRGc',
-  'Xsv9hRk1z5ystj9MhnA7Lq4vjSsLwzL2nxrwmwtD3re',
-  'XsqE9cRRpzxcGKDXj1BJ7Xmg4GRhZoyY1KpmGSxAWT2',
-  'Xsa62P5mvPszXL1krVUnU5ar38bBSVcWAB6fmPCo5Zu',
-  'XsP7xzNPvEHS1m6qfanPUGjNmdnmsLKEoNAnHjdxxyZ',
-  'Xs8S1uUs1zvS2p7iwtsG3b6fkhpvmwz4GYU3gWAmWHZ',
-  'XsvNBAYkrDRNhA7wPHQfX3ZUXZyZLdnCQDfHZ56bzpg',
-  'XsoCS1TfEyfFhfvj8EtZ528L3CaKBDBRqRapnBbDF2W',
-  'XsDoVfqeBukxuZHWhdvWHBhgEHjGNst4MLodqsJHzoB'
-]
 
 export function usePortfolio() {
   const { tokenBalances, isLoadingTokens, isConnected, walletAddress } = useDynamicWallet()
@@ -61,23 +47,25 @@ export function usePortfolio() {
   const hasLoadedRef = useRef(false)
   const currentWalletRef = useRef<string | null>(null)
 
-  // Fetch token price and decimals from Jupiter
-  const fetchTokenPrice = async (contractAddress: string): Promise<{ price: number; decimals: number }> => {
+  // Fetch current token prices from Jupiter
+  const fetchTokenPrices = async (contractAddresses: string[]): Promise<{ [key: string]: number }> => {
     try {
-      const response = await axios.get(`https://lite-api.jup.ag/price/v3?ids=${contractAddress}`)
+      const response = await axios.get(`https://lite-api.jup.ag/price/v3?ids=${contractAddresses.join(',')}`)
       const data = response.data
       
-      if (data && data[contractAddress]) {
-        return {
-          price: parseFloat(data[contractAddress].usdPrice),
-          decimals: data[contractAddress].decimals || 9
+      const prices: { [key: string]: number } = {}
+      contractAddresses.forEach(address => {
+        if (data && data[address]) {
+          prices[address] = parseFloat(data[address].usdPrice)
+        } else {
+          prices[address] = 0
         }
-      }
+      })
       
-      return { price: 0, decimals: 9 }
+      return prices
     } catch (error) {
-      console.error(`Error fetching price for ${contractAddress}:`, error)
-      return { price: 0, decimals: 9 }
+      console.error('Error fetching token prices:', error)
+      return {}
     }
   }
 
@@ -111,8 +99,8 @@ export function usePortfolio() {
     }
   }
 
-  // Process token balances and fetch additional data
-  const processTokenBalances = async () => {
+  // Process holdings from backend and calculate unrealized PnL
+  const processHoldings = async () => {
     if (!isConnected || !walletAddress || isProcessing) {
       if (!isConnected || !walletAddress) {
         setPortfolioData(prev => ({ ...prev, isLoading: false, holdings: [] }))
@@ -129,57 +117,75 @@ export function usePortfolio() {
     setPortfolioData(prev => ({ ...prev, isLoading: true }))
 
     try {
-      // Fetch token balances from Jupiter API
-      const response = await axios.get(`https://lite-api.jup.ag/ultra/v1/balances/${walletAddress}`)
-      const balances = response.data
+      // Fetch holdings from backend
+      const holdingsResponse = await orderApi.getUserHoldings(walletAddress)
+      const backendHoldings = holdingsResponse.holdings || []
 
+      if (backendHoldings.length === 0) {
+        setPortfolioData({
+          totalValue: 0,
+          totalChange: 0,
+          totalChangePercent: 0,
+          totalInvested: 0,
+          holdings: [],
+          isLoading: false
+        })
+        return
+      }
+
+      // Get current prices for all holdings
+      const contractAddresses = backendHoldings.map((h: any) => h.tokenAddress)
+      const currentPrices = await fetchTokenPrices(contractAddresses)
+
+      // Process each holding
       const holdings: TokenHolding[] = []
       let totalValue = 0
+      let totalInvested = 0
+      let totalUnrealizedPnL = 0
 
-      // Process each token balance
-      for (const [contractAddress, balanceData] of Object.entries(balances)) {
-        // Skip SOL for now (we'll handle it separately if needed)
-        if (contractAddress === 'SOL') continue
+      for (const holding of backendHoldings) {
+        const currentPrice = currentPrices[holding.tokenAddress] || 0
+        
+        // Fetch metadata for display
+        const metadata = await fetchTokenMetadata(holding.tokenAddress)
+        
+        // Calculate unrealized PnL
+        const currentValue = holding.currentHoldings * currentPrice
+        const unrealizedPnL = currentValue - (holding.currentHoldings * holding.averageBuyPrice)
+        const unrealizedPnLPercent = holding.averageBuyPrice > 0 
+          ? ((currentPrice - holding.averageBuyPrice) / holding.averageBuyPrice) * 100 
+          : 0
 
-        // Check if this is one of our stock tokens
-        if (STOCK_TOKEN_ADDRESSES.includes(contractAddress)) {
-          const balance = balanceData as any
-          const uiAmount = balance.uiAmount || 0
-
-          // Only include tokens with non-zero balance
-          if (uiAmount > 0) {
-            // Fetch token price and metadata
-            const [price, metadata] = await Promise.all([
-              fetchTokenPrice(contractAddress),
-              fetchTokenMetadata(contractAddress)
-            ])
-
-            const tokenValue = uiAmount * price.price
-
-            holdings.push({
-              symbol: metadata.symbol,
-              name: metadata.name,
-              contractAddress,
-              balance: uiAmount,
-              balanceFormatted: uiAmount.toFixed(6),
-              priceUsd: price.price,
-              totalValue: tokenValue,
-              decimals: price.decimals,
-              change24h: metadata.change24h
-            })
-
-            totalValue += tokenValue
-          }
+        const tokenHolding: TokenHolding = {
+          symbol: metadata.symbol,
+          name: metadata.name,
+          contractAddress: holding.tokenAddress,
+          balance: holding.currentHoldings,
+          balanceFormatted: holding.currentHoldings.toFixed(6),
+          priceUsd: currentPrice,
+          totalValue: currentValue,
+          decimals: 9, // Default for most tokens
+          change24h: metadata.change24h,
+          averageBuyPrice: holding.averageBuyPrice,
+          unrealizedPnL,
+          unrealizedPnLPercent,
+          totalBought: holding.totalBought,
+          totalBoughtValue: holding.totalBoughtValue,
+          totalRealizedPnL: holding.totalRealizedPnL
         }
+
+        holdings.push(tokenHolding)
+        totalValue += currentValue
+        totalInvested += holding.totalBoughtValue
+        totalUnrealizedPnL += unrealizedPnL
       }
 
       // Sort holdings by total value (descending)
       holdings.sort((a, b) => b.totalValue - a.totalValue)
 
       // Calculate portfolio metrics
-      const totalInvested = totalValue // For now, assume current value = invested value
-      const totalChange = 0 // We don't have historical data yet
-      const totalChangePercent = 0
+      const totalChange = totalUnrealizedPnL
+      const totalChangePercent = totalInvested > 0 ? (totalUnrealizedPnL / totalInvested) * 100 : 0
 
       setPortfolioData({
         totalValue,
@@ -210,13 +216,13 @@ export function usePortfolio() {
   const refreshPortfolio = () => {
     hasLoadedRef.current = false
     currentWalletRef.current = null
-    processTokenBalances()
+    processHoldings()
   }
 
   // Process data when wallet changes
   useEffect(() => {
     if (!isLoadingTokens && isConnected && walletAddress) {
-      processTokenBalances()
+      processHoldings()
     }
   }, [isLoadingTokens, isConnected, walletAddress])
 

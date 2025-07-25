@@ -16,7 +16,8 @@ import {
   CheckCircle,
   Clock,
   XCircle,
-  Copy
+  Copy,
+  ExternalLink
 } from 'lucide-react'
 import { Button } from '../components/ui/Button'
 import { Card, CardContent } from '../components/ui/Card'
@@ -43,14 +44,24 @@ export default function DashboardPage() {
   const router = useRouter()
   const [showBalance, setShowBalance] = useState(true)
   const [isAddressCopied, setIsAddressCopied] = useState(false)
-  const [dashboardData, setDashboardData] = useState({
+  const [dashboardData, setDashboardData] = useState<{
+    portfolioValue: number;
+    totalVolume: number;
+    totalProfitLoss: number;
+    profitLossPercent: number;
+    totalInvested: number;
+    totalRealizedPnL: number;
+    ordersCount: number;
+    recentOrders: any[];
+  }>({
     portfolioValue: 0,
     totalVolume: 0,
     totalProfitLoss: 0,
     profitLossPercent: 0,
     totalInvested: 0,
+    totalRealizedPnL: 0,
     ordersCount: 0,
-    recentOrders: [] as any[]
+    recentOrders: []
   })
   const [isLoadingDashboard, setIsLoadingDashboard] = useState(true)
   const [userProfile, setUserProfile] = useState<any>(null)
@@ -75,38 +86,39 @@ export default function DashboardPage() {
           setUserProfile(profile);
         }
 
-        // Fetch all user orders to calculate portfolio
-        const ordersResponse = await orderApi.getUserOrders(walletAddress, { limit: 100 });
+        // Fetch user orders and volume
+        const [ordersResponse, volumeResponse, realizedPnLResponse] = await Promise.all([
+          orderApi.getUserOrders(walletAddress),
+          orderApi.getUserVolume(walletAddress),
+          orderApi.getUserRealizedPnL(walletAddress)
+        ]);
+
         const orders = ordersResponse.orders || [];
-
-        // Fetch user volume
-        const volumeResponse = await orderApi.getUserVolume(walletAddress);
         const totalVolume = volumeResponse.volume?.totalVolume || 0;
+        const totalRealizedPnL = realizedPnLResponse.totalRealizedPnL || 0;
 
-        // Calculate portfolio value and profit/loss from actual orders
-        const completedOrders = orders.filter((order: any) => order.status === 'COMPLETED');
+        // Process orders to calculate holdings and portfolio value
+        const tokenHoldings: { [key: string]: any } = {};
         
-        // Group orders by token symbol to calculate holdings
-        const tokenHoldings: any = {};
-        
-        completedOrders.forEach((order: any) => {
-          const symbol = order.tokenSymbol;
+        orders.forEach((order: any) => {
+          const symbol = order.symbol;
+          
           if (!tokenHoldings[symbol]) {
             tokenHoldings[symbol] = {
               totalBought: 0,
-              totalSold: 0,
               totalBoughtValue: 0,
+              totalSold: 0,
               totalSoldValue: 0,
               averageBuyPrice: 0
             };
           }
           
-          if (order.orderType === 'BUY') {
-            tokenHoldings[symbol].totalBought += order.amount;
-            tokenHoldings[symbol].totalBoughtValue += order.totalValue;
-          } else if (order.orderType === 'SELL') {
-            tokenHoldings[symbol].totalSold += order.amount;
-            tokenHoldings[symbol].totalSoldValue += order.totalValue;
+          if (order.type === 'BUY') {
+            tokenHoldings[symbol].totalBought += order.tokenAmount;
+            tokenHoldings[symbol].totalBoughtValue += order.amountInUsd;
+          } else if (order.type === 'SELL') {
+            tokenHoldings[symbol].totalSold += order.tokenAmount;
+            tokenHoldings[symbol].totalSoldValue += order.amountInUsd;
           }
         });
 
@@ -150,13 +162,13 @@ export default function DashboardPage() {
         // Get recent orders for display
         const recentOrders = orders.slice(0, 5).map((order: any) => ({
           id: order._id || order.id,
-          type: order.orderType?.toLowerCase() || order.type,
-          symbol: order.tokenSymbol,
-          shares: order.amount,
-          price: order.price,
-          total: order.totalValue,
-          status: order.status?.toLowerCase() || order.status,
-          timestamp: new Date(order.createdAt)
+          type: order.type?.toLowerCase() || 'buy',
+          symbol: order.symbol,
+          shares: order.tokenAmount,
+          price: order.tokenPrice,
+          total: order.amountInUsd,
+          status: 'completed', // All orders are completed now
+          timestamp: new Date(order.timestamp)
         }));
 
         setDashboardData({
@@ -165,6 +177,7 @@ export default function DashboardPage() {
           totalProfitLoss,
           profitLossPercent,
           totalInvested,
+          totalRealizedPnL,
           ordersCount: orders.length,
           recentOrders
         });
@@ -177,6 +190,7 @@ export default function DashboardPage() {
           totalProfitLoss: 0,
           profitLossPercent: 0,
           totalInvested: 0,
+          totalRealizedPnL: 0,
           ordersCount: 0,
           recentOrders: []
         });
@@ -255,7 +269,7 @@ export default function DashboardPage() {
             </div>
           </div>
         ) : (
-          <div className="px-4 py-6 space-y-6">
+        <div className="px-4 py-6 space-y-6">
           {/* Portfolio Value Card */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -336,23 +350,21 @@ export default function DashboardPage() {
               <div className="text-sm text-gray-400">All time</div>
             </Card>
 
-            {/* Total P&L */}
+            {/* Realized P&L */}
             <Card className="p-4">
               <div className="flex items-center justify-between mb-2">
                 <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center">
-                  <TrendingUp className="w-4 h-4 text-white" />
+                  <CheckCircle className="w-4 h-4 text-white" />
                 </div>
-                <span className="text-xs text-gray-400">Total P&L</span>
+                <span className="text-xs text-gray-400">Realized P&L</span>
               </div>
               <div className={`text-xl font-bold ${
-                dashboardData.totalProfitLoss >= 0 ? 'text-green-400' : 'text-red-400'
+                dashboardData.totalRealizedPnL >= 0 ? 'text-green-400' : 'text-red-400'
               }`}>
-                {dashboardData.totalProfitLoss >= 0 ? '+' : ''}${dashboardData.totalProfitLoss.toFixed(2)}
+                {dashboardData.totalRealizedPnL >= 0 ? '+' : ''}${dashboardData.totalRealizedPnL.toFixed(2)}
               </div>
-              <div className={`text-sm ${
-                dashboardData.totalProfitLoss >= 0 ? 'text-green-400' : 'text-red-400'
-              }`}>
-                {dashboardData.profitLossPercent >= 0 ? '+' : ''}{dashboardData.profitLossPercent.toFixed(2)}%
+              <div className="text-sm text-gray-400">
+                From completed trades
               </div>
             </Card>
 
@@ -389,34 +401,34 @@ export default function DashboardPage() {
 
             {/* Recent Orders List */}
             {dashboardData.recentOrders.length > 0 ? (
-              <div className="space-y-3">
-                {dashboardData.recentOrders.map((order) => (
-                  <Card key={order.id} className="p-4">
-                    <div className="flex items-center justify-between">
+            <div className="space-y-3">
+              {dashboardData.recentOrders.map((order) => (
+                <Card key={order.id} className="p-4">
+                  <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         {getOrderIcon(order.type)}
-                        <div>
+                      <div>
                           <div className="font-semibold text-white">
-                            {order.type === 'buy' ? 'Bought' : 'Sold'} {order.shares} {order.symbol}
+                          {order.type === 'buy' ? 'Bought' : 'Sold'} {order.shares} {order.symbol}
                           </div>
                           <div className="text-sm text-gray-400">
                             ${order.price.toFixed(4)} per token
                           </div>
                         </div>
                       </div>
-                      <div className="text-right">
+                    <div className="text-right">
                         <div className="font-semibold text-white">
-                          ${order.total.toFixed(2)}
+                        ${order.total.toFixed(2)}
                         </div>
                         <div className="flex items-center gap-1 text-sm text-gray-400">
-                          {getStatusIcon(order.status)}
+                        {getStatusIcon(order.status)}
                           <span>{formatTimeAgo(order.timestamp)}</span>
-                        </div>
                       </div>
                     </div>
-                  </Card>
-                ))}
-              </div>
+                  </div>
+                </Card>
+              ))}
+            </div>
             ) : (
               <Card className="p-6 text-center">
                 <ShoppingCart className="w-8 h-8 mx-auto mb-2 text-gray-400" />

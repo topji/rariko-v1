@@ -1,85 +1,89 @@
 const mongoose = require('mongoose');
 
 const orderSchema = new mongoose.Schema({
-  user: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true
-  },
-  orderType: {
-    type: String,
-    enum: ['BUY', 'SELL'],
-    required: true
-  },
-  tokenSymbol: {
-    type: String,
-    required: true,
-    trim: true,
-    uppercase: true
-  },
   tokenAddress: {
     type: String,
     required: true,
     trim: true
   },
-  amount: {
-    type: Number,
-    required: true,
-    min: 0
-  },
-  price: {
-    type: Number,
-    required: true,
-    min: 0
-  },
-  totalValue: {
-    type: Number,
-    required: true,
-    min: 0
-  },
-  transactionHash: {
+  symbol: {
     type: String,
+    required: true,
     trim: true,
+    uppercase: true
+  },
+  userAddress: {
+    type: String,
+    required: true,
+    trim: true
+  },
+  amountInUsd: {
+    type: Number,
+    required: true,
+    min: 0
+  },
+  tokenAmount: {
+    type: Number,
+    required: true,
+    min: 0
+  },
+  amountInSol: {
+    type: Number,
+    required: true,
+    min: 0
+  },
+  type: {
+    type: String,
+    enum: ['BUY', 'SELL'],
     required: true
   },
-  // Simplified metadata
-  metadata: {
-    tokenAmount: Number,
-    feeInUSD: Number,
-    timestamp: {
-      type: Date,
-      default: Date.now
-    }
+  txHash: {
+    type: String,
+    required: true,
+    trim: true
   },
-  // Single timestamp
-  createdAt: {
+  feeInUsd: {
+    type: Number,
+    required: true,
+    min: 0
+  },
+  tokenPrice: {
+    type: Number,
+    required: true,
+    min: 0
+  },
+  timestamp: {
     type: Date,
     default: Date.now
+  },
+  realizedPNL: {
+    type: Number,
+    default: null
   }
 });
 
 // Indexes for better query performance
-orderSchema.index({ user: 1, createdAt: -1 });
-orderSchema.index({ orderType: 1 });
-orderSchema.index({ tokenSymbol: 1 });
-orderSchema.index({ transactionHash: 1 });
-orderSchema.index({ createdAt: -1 });
+orderSchema.index({ userAddress: 1, timestamp: -1 });
+orderSchema.index({ type: 1 });
+orderSchema.index({ symbol: 1 });
+orderSchema.index({ txHash: 1 });
+orderSchema.index({ timestamp: -1 });
 
 // Static method to get user orders
-orderSchema.statics.getUserOrders = async function(userId, options = {}) {
+orderSchema.statics.getUserOrders = async function(userAddress, options = {}) {
   const {
-    orderType,
-    tokenSymbol,
+    type,
+    symbol,
     limit = 50,
     skip = 0,
-    sortBy = 'createdAt',
+    sortBy = 'timestamp',
     sortOrder = 'desc'
   } = options;
 
-  const query = { user: userId };
+  const query = { userAddress };
   
-  if (orderType) query.orderType = orderType;
-  if (tokenSymbol) query.tokenSymbol = tokenSymbol;
+  if (type) query.type = type;
+  if (symbol) query.symbol = symbol;
 
   const sort = {};
   sort[sortBy] = sortOrder === 'desc' ? -1 : 1;
@@ -87,36 +91,35 @@ orderSchema.statics.getUserOrders = async function(userId, options = {}) {
   return await this.find(query)
     .sort(sort)
     .limit(limit)
-    .skip(skip)
-    .populate('user', 'username displayName walletAddress');
+    .skip(skip);
 };
 
 // Static method to get user volume
-orderSchema.statics.getUserVolume = async function(userId, options = {}) {
+orderSchema.statics.getUserVolume = async function(userAddress, options = {}) {
   const {
     startDate,
     endDate,
-    orderType,
-    tokenSymbol
+    type,
+    symbol
   } = options;
 
-  const query = { user: userId };
+  const query = { userAddress };
   
-  if (startDate) query.createdAt = { $gte: new Date(startDate) };
+  if (startDate) query.timestamp = { $gte: new Date(startDate) };
   if (endDate) {
-    if (query.createdAt) {
-      query.createdAt.$lte = new Date(endDate);
+    if (query.timestamp) {
+      query.timestamp.$lte = new Date(endDate);
     } else {
-      query.createdAt = { $lte: new Date(endDate) };
+      query.timestamp = { $lte: new Date(endDate) };
     }
   }
-  if (orderType) query.orderType = orderType;
-  if (tokenSymbol) query.tokenSymbol = tokenSymbol;
+  if (type) query.type = type;
+  if (symbol) query.symbol = symbol;
 
   const orders = await this.find(query);
   
   const volume = orders.reduce((total, order) => {
-    return total + order.totalValue;
+    return total + order.amountInUsd;
   }, 0);
 
   return {
@@ -127,37 +130,37 @@ orderSchema.statics.getUserVolume = async function(userId, options = {}) {
 };
 
 // Static method to get total volume by token
-orderSchema.statics.getTokenVolume = async function(tokenSymbol, options = {}) {
+orderSchema.statics.getTokenVolume = async function(symbol, options = {}) {
   const {
     startDate,
     endDate,
-    orderType
+    type
   } = options;
 
-  const query = { tokenSymbol };
+  const query = { symbol };
   
-  if (startDate) query.createdAt = { $gte: new Date(startDate) };
+  if (startDate) query.timestamp = { $gte: new Date(startDate) };
   if (endDate) {
-    if (query.createdAt) {
-      query.createdAt.$lte = new Date(endDate);
+    if (query.timestamp) {
+      query.timestamp.$lte = new Date(endDate);
     } else {
-      query.createdAt = { $lte: new Date(endDate) };
+      query.timestamp = { $lte: new Date(endDate) };
     }
   }
-  if (orderType) query.orderType = orderType;
+  if (type) query.type = type;
 
   const orders = await this.find(query);
   
   const volume = orders.reduce((total, order) => {
-    return total + order.totalValue;
+    return total + order.amountInUsd;
   }, 0);
 
   return {
-    tokenSymbol,
+    symbol,
     totalVolume: volume,
     orderCount: orders.length,
-    buyVolume: orders.filter(o => o.orderType === 'BUY').reduce((sum, o) => sum + o.totalValue, 0),
-    sellVolume: orders.filter(o => o.orderType === 'SELL').reduce((sum, o) => sum + o.totalValue, 0)
+    buyVolume: orders.filter(o => o.type === 'BUY').reduce((sum, o) => sum + o.amountInUsd, 0),
+    sellVolume: orders.filter(o => o.type === 'SELL').reduce((sum, o) => sum + o.amountInUsd, 0)
   };
 };
 

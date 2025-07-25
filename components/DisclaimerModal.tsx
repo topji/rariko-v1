@@ -54,30 +54,30 @@ export default function DisclaimerModal({ isOpen, onAccept }: DisclaimerModalPro
               <div className="space-y-4 text-sm text-gray-300 leading-relaxed">
                 <div className="flex items-start gap-3">
                   <CheckCircle className="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" />
-                  <p>
-                    <strong className="text-white">I agree that rizz.money offers a platform to invest in tokenized assets like stocks backed by real world stocks.</strong>
-                  </p>
+                <p>
+                  <strong className="text-white">I agree that rizz.money offers a platform to invest in tokenized assets like stocks backed by real world stocks.</strong>
+                </p>
                 </div>
                 
                 <div className="flex items-start gap-3">
                   <CheckCircle className="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" />
-                  <p>
-                    <strong className="text-white">I fully understand that I have full custody of my investments and funds in my Wallet and rizz.money cannot access my funds.</strong>
-                  </p>
+                <p>
+                  <strong className="text-white">I fully understand that I have full custody of my investments and funds in my Wallet and rizz.money cannot access my funds.</strong>
+                </p>
                 </div>
                 
                 <div className="flex items-start gap-3">
                   <CheckCircle className="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" />
-                  <p>
-                    <strong className="text-white">I am not a US citizen.</strong>
-                  </p>
+                <p>
+                  <strong className="text-white">I am not a US citizen.</strong>
+                </p>
                 </div>
                 
                 <div className="flex items-start gap-3">
                   <CheckCircle className="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" />
-                  <p>
-                    <strong className="text-white">I myself am responsible for my own investments and any Profit/Loss I may incur.</strong>
-                  </p>
+                <p>
+                  <strong className="text-white">I myself am responsible for my own investments and any Profit/Loss I may incur.</strong>
+                </p>
                 </div>
               </div>
             </div>

@@ -117,20 +117,17 @@ export default function SellTokenModal({ isOpen, onClose, token, onSuccess }: Se
       
       // Create backend order only after successful transaction
       const orderData = {
-        walletAddress,
-        tokenSymbol: token.symbol,
+        userAddress: walletAddress,
+        symbol: token.symbol,
         tokenAddress: token.contractAddress,
-        amount: tokenAmount, // This is what backend validation expects
-        price: parseFloat(token.priceUsd),
-        totalValue: usdValue,
-        transactionHash: result.txId,
-        tokenAmount,
-        feeInUSD: result.feeInUSD,
-        metadata: {
-          solAmount,
-          feeAmount,
-          timestamp: new Date()
-        }
+        amountInUsd: usdValue,
+        tokenAmount: tokenAmount,
+        amountInSol: solAmount,
+        type: 'SELL',
+        txHash: result.txId,
+        feeInUsd: result.feeInUSD,
+        tokenPrice: parseFloat(token.priceUsd),
+        realizedPNL: null // TODO: Calculate PNL when we have buy price history
       }
       
       await orderApi.createSellOrder(orderData)
