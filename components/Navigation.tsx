@@ -7,9 +7,9 @@ import { cn } from '../lib/utils'
 
 const navigationItems = [
   {
-    id: 'dashboard',
-    label: 'Dashboard',
-    icon: BarChart3,
+    id: 'history',
+    label: 'History',
+    icon: Clock,
     href: '/',
   },
   {
