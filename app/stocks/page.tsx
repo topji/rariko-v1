@@ -281,7 +281,6 @@ export default function StocksPage() {
   }
 
   return (
-    <WalletCheck>
       <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black">
       {/* Header */}
       <PageHeader showProfile={true} 
@@ -556,6 +555,5 @@ export default function StocksPage() {
           </div>
       )}
     </div>
-    </WalletCheck>
   )
 } 
