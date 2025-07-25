@@ -147,20 +147,56 @@ export default function PortfolioPage() {
       <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black">
         <PageHeader showProfile={true} />
         <div className="px-4 py-6 space-y-6">
-          {/* Portfolio Overview */}
-          <Card variant="elevated" className="bg-gradient-to-br from-usdt to-primary-600 text-white">
-            <div className="p-6 text-center">
-              <h2 className="text-2xl font-bold mb-2">${portfolioData.portfolioValue.toLocaleString()}</h2>
-              <div className={`flex items-center justify-center gap-1 text-sm mb-2 ${portfolioData.totalProfitLoss >= 0 ? 'text-green-300' : 'text-red-300'}`}> 
-                {portfolioData.totalProfitLoss >= 0 ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
-                {portfolioData.totalProfitLoss >= 0 ? '+' : ''}${portfolioData.totalProfitLoss.toFixed(2)} (Total PnL)
+          {/* Portfolio Stats Cards */}
+          <div className="grid grid-cols-2 gap-4">
+            {/* Portfolio Value */}
+            <Card className="bg-gradient-to-br from-blue-600 to-blue-700 text-white">
+              <div className="p-4 text-center">
+                <div className="flex items-center justify-center mb-2">
+                  <DollarSign className="w-5 h-5 mr-2" />
+                  <span className="text-sm font-medium">Portfolio Value</span>
+                </div>
+                <div className="text-xl font-bold">${portfolioData.portfolioValue.toLocaleString()}</div>
               </div>
-              <div className={`flex items-center justify-center gap-1 text-xs mb-2 ${portfolioData.unrealizedPnL >= 0 ? 'text-green-200' : 'text-red-200'}`}> 
-                {portfolioData.unrealizedPnL >= 0 ? '+' : ''}${portfolioData.unrealizedPnL.toFixed(2)} (Unrealized)
+            </Card>
+
+            {/* Total PnL */}
+            <Card className={`bg-gradient-to-br ${portfolioData.totalProfitLoss >= 0 ? 'from-green-600 to-green-700' : 'from-red-600 to-red-700'} text-white`}>
+              <div className="p-4 text-center">
+                <div className="flex items-center justify-center mb-2">
+                  <TrendingUp className="w-5 h-5 mr-2" />
+                  <span className="text-sm font-medium">Total PnL</span>
+                </div>
+                <div className="text-xl font-bold">
+                  {portfolioData.totalProfitLoss >= 0 ? '+' : ''}${portfolioData.totalProfitLoss.toFixed(2)}
+                </div>
               </div>
-              <p className="text-blue-200 text-sm">Total Volume: ${portfolioData.totalVolume.toLocaleString()}</p>
-            </div>
-          </Card>
+            </Card>
+
+            {/* Unrealized PnL */}
+            <Card className={`bg-gradient-to-br ${portfolioData.unrealizedPnL >= 0 ? 'from-emerald-600 to-emerald-700' : 'from-orange-600 to-orange-700'} text-white`}>
+              <div className="p-4 text-center">
+                <div className="flex items-center justify-center mb-2">
+                  <Percent className="w-5 h-5 mr-2" />
+                  <span className="text-sm font-medium">Unrealized PnL</span>
+                </div>
+                <div className="text-lg font-bold">
+                  {portfolioData.unrealizedPnL >= 0 ? '+' : ''}${portfolioData.unrealizedPnL.toFixed(2)}
+                </div>
+              </div>
+            </Card>
+
+            {/* Volume */}
+            <Card className="bg-gradient-to-br from-purple-600 to-purple-700 text-white">
+              <div className="p-4 text-center">
+                <div className="flex items-center justify-center mb-2">
+                  <BarChart3 className="w-5 h-5 mr-2" />
+                  <span className="text-sm font-medium">Volume</span>
+                </div>
+                <div className="text-xl font-bold">${portfolioData.totalVolume.toLocaleString()}</div>
+              </div>
+            </Card>
+          </div>
 
           {/* Holdings */}
           <div>

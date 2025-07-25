@@ -47,9 +47,12 @@ export default function HistoryPage() {
         if (showMine && walletAddress) {
           options.userAddress = walletAddress;
         }
+        console.log('Fetching orders with options:', options);
         const res = await orderApi.getAllOrders(options);
+        console.log('Orders response:', res);
         setOrders(res.orders || []);
       } catch (e) {
+        console.error('Error fetching orders:', e);
         setOrders([]);
       } finally {
         setIsLoading(false);
