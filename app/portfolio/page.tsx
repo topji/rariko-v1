@@ -204,7 +204,7 @@ export default function PortfolioPage() {
               </>
             )}
           </Card>
-
+          
           {/* Volume Card */}
           <Card className="p-4">
             <div className="flex items-center justify-between mb-2">

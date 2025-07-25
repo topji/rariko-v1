@@ -8,6 +8,7 @@ import { motion } from 'framer-motion';
 import { Logo } from './Logo';
 import DisclaimerModal from './DisclaimerModal';
 import { useUserApi } from '../hooks/useUserApi';
+import NeonIsometricMaze from './neonGraphic';
 
 export default function WalletCheck({ children }: { children: React.ReactNode }) {
   const { primaryWallet } = useDynamicContext();
@@ -121,7 +122,12 @@ export default function WalletCheck({ children }: { children: React.ReactNode })
   // If no wallet connected, show onboarding
   if (!isConnectedSolanaWallet) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black flex items-center justify-center p-4 relative overflow-hidden">
+        {/* Neon Graphic Background */}
+        <div className="absolute inset-0 opacity-30">
+          <NeonIsometricMaze />
+        </div>
+        
         {/* Background Pattern */}
         <div className="absolute inset-0 opacity-5">
           <div className="absolute inset-0" style={{
@@ -215,8 +221,13 @@ export default function WalletCheck({ children }: { children: React.ReactNode })
   // If checking user existence, show loading
   if (checking) {
     return (
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
-        <div className="text-center">
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center relative overflow-hidden">
+        {/* Neon Graphic Background */}
+        <div className="absolute inset-0 opacity-20">
+          <NeonIsometricMaze />
+        </div>
+        
+        <div className="text-center relative z-10">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-usdt mx-auto mb-4"></div>
           <p className="text-white text-lg">Checking your account...</p>
         </div>
@@ -227,7 +238,12 @@ export default function WalletCheck({ children }: { children: React.ReactNode })
   // If user doesn't exist and needs to complete registration
   if (!userExists && (showDisclaimer || showUsernamePrompt)) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black flex items-center justify-center p-4 relative overflow-hidden">
+        {/* Neon Graphic Background */}
+        <div className="absolute inset-0 opacity-30">
+          <NeonIsometricMaze />
+        </div>
+        
         {/* Background Pattern */}
         <div className="absolute inset-0 opacity-5">
           <div className="absolute inset-0" style={{
@@ -262,7 +278,7 @@ export default function WalletCheck({ children }: { children: React.ReactNode })
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6 }}
-                className="bg-gray-800 border border-gray-700 rounded-2xl p-6 shadow-xl"
+                className="bg-gray-800/80 backdrop-blur-sm border border-gray-700 rounded-2xl p-6 shadow-xl"
               >
                 <h2 className="text-xl font-bold text-white mb-4">Create Your Account</h2>
                 <form onSubmit={handleUsernameSubmit} className="space-y-4">
