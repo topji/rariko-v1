@@ -139,47 +139,32 @@ export default function DashboardPage() {
 
   return (
     <WalletCheck>
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 pb-20">
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black pb-20">
         {/* Header */}
         <PageHeader showProfile={true}>
           <Button
             variant="ghost"
             size="sm"
             onClick={handleCopyAddress}
-            className="text-gray-300 hover:text-white backdrop-blur-sm"
+            className="text-gray-400 hover:text-white"
           >
             <Copy className="w-4 h-4" />
           </Button>
           {isAddressCopied && (
-            <span className="text-xs text-emerald-400 font-medium">Copied!</span>
+            <span className="text-xs text-green-400">Copied!</span>
           )}
         </PageHeader>
 
-        <div className="px-4 py-6 space-y-8">
-          {/* Hero Section */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            className="text-center space-y-4"
-          >
-            <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-white via-purple-200 to-pink-200 bg-clip-text text-transparent">
-              Trading Dashboard
-            </h1>
-            <p className="text-gray-300 text-lg max-w-2xl mx-auto">
-              Monitor real-time trading activity across the platform
-            </p>
-          </motion.div>
-
+        <div className="px-4 py-6 space-y-6">
           {/* Filter and Controls */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.1 }}
-            className="flex flex-col sm:flex-row items-center justify-between gap-4 p-6 bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10"
+            transition={{ duration: 0.6 }}
+            className="flex flex-col sm:flex-row items-center justify-between gap-4 p-6 bg-gray-800/50 rounded-2xl border border-gray-700"
           >
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center">
+              <div className="w-10 h-10 bg-usdt rounded-xl flex items-center justify-center">
                 <BarChart3 className="w-5 h-5 text-white" />
               </div>
               <div>
@@ -192,7 +177,7 @@ export default function DashboardPage() {
                 variant={filterByMe ? "primary" : "outline"}
                 size="sm"
                 onClick={() => setFilterByMe(!filterByMe)}
-                className="flex items-center gap-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 border-0"
+                className="flex items-center gap-2"
               >
                 <Filter className="w-4 h-4" />
                 {filterByMe ? 'My Orders' : 'All Orders'}
@@ -201,7 +186,7 @@ export default function DashboardPage() {
                 variant="ghost"
                 size="sm"
                 onClick={fetchOrders}
-                className="text-gray-300 hover:text-white hover:bg-white/10"
+                className="text-gray-400 hover:text-white"
               >
                 <RefreshCw className="w-4 h-4" />
               </Button>
@@ -213,10 +198,10 @@ export default function DashboardPage() {
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="flex items-center justify-center py-16"
+              className="flex items-center justify-center py-12"
             >
-              <div className="flex items-center gap-3 p-6 bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10">
-                <div className="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
+              <div className="flex items-center gap-3 p-6 bg-gray-800/50 rounded-2xl border border-gray-700">
+                <div className="w-8 h-8 border-2 border-usdt border-t-transparent rounded-full animate-spin"></div>
                 <span className="text-gray-300 font-medium">Loading orders...</span>
               </div>
             </motion.div>
@@ -234,13 +219,13 @@ export default function DashboardPage() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.4, delay: index * 0.1 }}
                 >
-                  <Card className="p-6 bg-white/5 backdrop-blur-xl border border-white/10 hover:bg-white/10 transition-all duration-300 hover:scale-[1.02]">
+                  <Card className="p-6 bg-gray-800/50 border border-gray-700 hover:bg-gray-800/70 transition-all duration-300 hover:scale-[1.02]">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-4">
                         <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
                           order.type === 'BUY' 
-                            ? 'bg-gradient-to-br from-emerald-500 to-green-600' 
-                            : 'bg-gradient-to-br from-red-500 to-pink-600'
+                            ? 'bg-green-600' 
+                            : 'bg-red-600'
                         }`}>
                           {getOrderIcon(order.type.toLowerCase())}
                         </div>
@@ -255,13 +240,13 @@ export default function DashboardPage() {
                       </div>
                       <div className="text-right space-y-1">
                         <div className={`text-xl font-bold ${
-                          order.type === 'BUY' ? 'text-emerald-400' : 'text-red-400'
+                          order.type === 'BUY' ? 'text-green-400' : 'text-red-400'
                         }`}>
                           ${order.amountInUsd.toFixed(2)}
                         </div>
                         {order.type === 'SELL' && order.realizedPNL && (
                           <div className={`text-sm font-medium ${
-                            order.realizedPNL >= 0 ? 'text-emerald-400' : 'text-red-400'
+                            order.realizedPNL >= 0 ? 'text-green-400' : 'text-red-400'
                           }`}>
                             PnL: {order.realizedPNL >= 0 ? '+' : ''}${order.realizedPNL.toFixed(2)}
                           </div>
@@ -278,8 +263,8 @@ export default function DashboardPage() {
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.6, delay: 0.2 }}
             >
-              <Card className="p-12 text-center bg-white/5 backdrop-blur-xl border border-white/10">
-                <div className="w-20 h-20 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center mx-auto mb-6">
+              <Card className="p-12 text-center bg-gray-800/50 border border-gray-700">
+                <div className="w-20 h-20 bg-usdt rounded-full flex items-center justify-center mx-auto mb-6">
                   <ShoppingCart className="w-10 h-10 text-white" />
                 </div>
                 <h3 className="text-2xl font-bold text-white mb-3">No Orders Found</h3>
@@ -288,7 +273,7 @@ export default function DashboardPage() {
                 </p>
                 <Button 
                   onClick={() => router.push('/stocks')}
-                  className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold px-8 py-3 rounded-xl"
+                  className="bg-usdt hover:bg-primary-600 text-white font-semibold px-8 py-3 rounded-xl"
                 >
                   Start Trading
                 </Button>
@@ -309,11 +294,11 @@ export default function DashboardPage() {
                 size="sm"
                 onClick={() => setPagination(prev => ({ ...prev, currentPage: prev.currentPage - 1 }))}
                 disabled={!pagination.hasPrevPage}
-                className="bg-white/5 backdrop-blur-xl border-white/20 text-gray-300 hover:bg-white/10 hover:text-white disabled:opacity-50"
+                className="bg-gray-800/50 border-gray-700 text-gray-300 hover:bg-gray-800/70 hover:text-white disabled:opacity-50"
               >
                 Previous
               </Button>
-              <div className="px-4 py-2 bg-white/5 backdrop-blur-xl rounded-lg border border-white/10">
+              <div className="px-4 py-2 bg-gray-800/50 rounded-lg border border-gray-700">
                 <span className="text-sm text-gray-300 font-medium">
                   Page {pagination.currentPage} of {pagination.totalPages}
                 </span>
@@ -323,7 +308,7 @@ export default function DashboardPage() {
                 size="sm"
                 onClick={() => setPagination(prev => ({ ...prev, currentPage: prev.currentPage + 1 }))}
                 disabled={!pagination.hasNextPage}
-                className="bg-white/5 backdrop-blur-xl border-white/20 text-gray-300 hover:bg-white/10 hover:text-white disabled:opacity-50"
+                className="bg-gray-800/50 border-gray-700 text-gray-300 hover:bg-gray-800/70 hover:text-white disabled:opacity-50"
               >
                 Next
               </Button>
