@@ -7,17 +7,18 @@ import { cn } from '../lib/utils'
 
 const navigationItems = [
   {
-    id: 'dashboard',
-    label: 'Dashboard',
-    icon: BarChart3,
-    href: '/',
+    id: 'portfolio',
+    label: 'Portfolio',
+    icon: PieChart,
+    href: '/portfolio',
   },
   {
-    id: 'rewards',
-    label: 'Rewards',
-    icon: Gift,
-    href: '/rewards',
+    id: 'history',
+    label: 'History',
+    icon: BarChart3,
+    href: '/history',
   },
+  
   {
     id: 'stocks',
     label: 'Stocks',
@@ -25,10 +26,10 @@ const navigationItems = [
     href: '/stocks',
   },
   {
-    id: 'portfolio',
-    label: 'Portfolio',
-    icon: PieChart,
-    href: '/portfolio',
+    id: 'rewards',
+    label: 'Rewards',
+    icon: Gift,
+    href: '/rewards',
   },
   {
     id: 'profile',
