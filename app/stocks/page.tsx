@@ -5,7 +5,7 @@ import { Navigation } from '../../components/Navigation'
 import { Card } from '../../components/ui/Card'
 import { Button } from '../../components/ui/Button'
 import { Input } from '../../components/ui/Input'
-import { Search, TrendingUp, TrendingDown, DollarSign, Volume2, RefreshCw, Loader2 } from 'lucide-react'
+import { Search, TrendingUp, TrendingDown, DollarSign, Volume2, RefreshCw, Loader2, Info } from 'lucide-react'
 import { PageHeader } from '../../components/PageHeader'
 import { useSwapV2 } from '../../hooks/useSwapV2'
 import { useDynamicWallet } from '../../hooks/useDynamicWallet'
@@ -59,6 +59,8 @@ export default function StocksPage() {
   const [successData, setSuccessData] = useState<any>(null)
   const [showProcessingModal, setShowProcessingModal] = useState(false)
   const [processingMessage, setProcessingMessage] = useState('')
+  const [showInfoModal, setShowInfoModal] = useState(false)
+  const [selectedInfoToken, setSelectedInfoToken] = useState<TokenData | null>(null)
   
   const { buyToken, getQuote, isLoading: isSwapLoading } = useSwapV2()
   const { isConnected, tokenBalances, walletAddress } = useDynamicWallet()
@@ -353,13 +355,26 @@ export default function StocksPage() {
                 </div>
               </div>
               
-              <Button
-                  onClick={() => setSelectedToken(token)}
-                className="w-full mt-3 bg-usdt hover:bg-primary-600"
+              <div className="mt-3 flex gap-2">
+                <Button
+                  onClick={() => {
+                    setSelectedInfoToken(token)
+                    setShowInfoModal(true)
+                  }}
+                  variant="outline"
+                  className="flex-1 border-gray-600 text-gray-300 hover:bg-gray-700 hover:text-white"
                   disabled={token.error !== undefined}
-              >
+                >
+                  Info
+                </Button>
+                <Button
+                  onClick={() => setSelectedToken(token)}
+                  className="flex-1 bg-usdt hover:bg-primary-600"
+                  disabled={token.error !== undefined}
+                >
                   {token.error ? 'Data Unavailable' : `Buy ${token.symbol}`}
-              </Button>
+                </Button>
+              </div>
             </Card>
             ))}
           </div>
@@ -543,6 +558,129 @@ export default function StocksPage() {
           tokenPrice={successData.tokenPrice}
         />
       )}
+
+        {/* Info Modal */}
+        {showInfoModal && selectedInfoToken && (
+          <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50">
+            <div className="bg-gray-900 rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
+              {/* Header */}
+              <div className="flex items-center justify-between p-6 border-b border-gray-700">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 bg-gradient-to-br from-usdt to-green-600 rounded-xl flex items-center justify-center">
+                    <span className="text-white font-bold text-sm">{selectedInfoToken.symbol.slice(0, 2)}</span>
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-bold text-white">{selectedInfoToken.symbol}</h2>
+                    <p className="text-gray-400">{selectedInfoToken.name}</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowInfoModal(false)}
+                  className="text-gray-400 hover:text-white p-2 rounded-lg hover:bg-gray-800"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Content */}
+              <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
+                {/* Price Info */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                  <div className="bg-gray-800 rounded-xl p-4">
+                    <div className="text-gray-400 text-sm mb-1">Current Price</div>
+                    <div className="text-2xl font-bold text-white">${formatPrice(selectedInfoToken.priceUsd)}</div>
+                  </div>
+                  <div className="bg-gray-800 rounded-xl p-4">
+                    <div className="text-gray-400 text-sm mb-1">24h Change</div>
+                    <div className={`text-2xl font-bold ${
+                      selectedInfoToken.priceChange24h >= 0 ? 'text-green-400' : 'text-red-400'
+                    }`}>
+                      {selectedInfoToken.priceChange24h >= 0 ? '+' : ''}{selectedInfoToken.priceChange24h.toFixed(2)}%
+                    </div>
+                  </div>
+                  <div className="bg-gray-800 rounded-xl p-4">
+                    <div className="text-gray-400 text-sm mb-1">24h Volume</div>
+                    <div className="text-2xl font-bold text-white">{formatVolume(selectedInfoToken.volume24h)}</div>
+                  </div>
+                </div>
+
+                {/* Chart */}
+                <div className="mb-6">
+                  <h3 className="text-lg font-semibold text-white mb-3">Price Chart</h3>
+                  <div className="bg-gray-800 rounded-xl overflow-hidden">
+                    <iframe 
+                      src={`https://dexscreener.com/solana/${selectedInfoToken.contractAddress}?embed=1&loadChartSettings=0&trades=0&tabs=0&info=0&chartLeftToolbar=0&chartTimeframesToolbar=0&loadChartSettings=0&chartDefaultOnMobile=1&chartTheme=dark&theme=dark&chartStyle=1&chartType=usd&interval=5`}
+                      title="DexScreener Chart"
+                      className="w-full h-96 border-0"
+                    />
+                  </div>
+                </div>
+
+                {/* Token Details */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                  <div className="bg-gray-800 rounded-xl p-4">
+                    <h4 className="text-white font-semibold mb-3">Token Information</h4>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-gray-400">Symbol:</span>
+                        <span className="text-white">{selectedInfoToken.symbol}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-400">Name:</span>
+                        <span className="text-white">{selectedInfoToken.name}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-400">Decimals:</span>
+                        <span className="text-white">{selectedInfoToken.decimals}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="bg-gray-800 rounded-xl p-4">
+                    <h4 className="text-white font-semibold mb-3">Contract Details</h4>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-gray-400">Contract:</span>
+                        <span className="text-white font-mono text-xs">
+                          {selectedInfoToken.contractAddress.slice(0, 8)}...{selectedInfoToken.contractAddress.slice(-8)}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-400">Network:</span>
+                        <span className="text-white">Solana</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-400">Type:</span>
+                        <span className="text-white">Tokenized Stock</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Buy Button */}
+                <div className="flex gap-3">
+                  <Button
+                    onClick={() => {
+                      setShowInfoModal(false)
+                      setSelectedToken(selectedInfoToken)
+                    }}
+                    className="flex-1 bg-usdt hover:bg-primary-600 text-white font-semibold py-3 rounded-xl"
+                  >
+                    Buy Now
+                  </Button>
+                  <Button
+                    onClick={() => setShowInfoModal(false)}
+                    variant="outline"
+                    className="flex-1 border-gray-600 text-gray-300 hover:bg-gray-700 hover:text-white"
+                  >
+                    Close
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Processing Modal */}
         {showProcessingModal && (
