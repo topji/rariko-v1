@@ -29,22 +29,22 @@ import {
 import { PageHeader } from '../../components/PageHeader'
 import QRCode from 'qrcode'
 import { useUserApi } from '../../hooks/useUserApi'
-import { orderApi } from '../../lib/api'
-import SellTokenModal from '../../components/SellTokenModal'
-import TransactionSuccessModal from '../../components/TransactionSuccessModal'
+// import { orderApi } from '../../lib/api'
+// import SellTokenModal from '../../components/SellTokenModal'
+// import TransactionSuccessModal from '../../components/TransactionSuccessModal'
 
 // Type definitions
-interface UserData {
-  id: string;
-  username: string;
-  displayName: string;
-  walletAddress: string;
-  referralCode: string;
-  referralCount: number;
-  totalVolume: number;
-  lastLogin: string;
-  createdAt: string;
-}
+// interface UserData {
+//   id: string;
+//   username: string;
+//   displayName: string;
+//   walletAddress: string;
+//   referralCode: string;
+//   referralCount: number;
+//   totalVolume: number;
+//   lastLogin: string;
+//   createdAt: string;
+// }
 
 interface ReferralData {
   referralCode: string;
@@ -294,13 +294,6 @@ export default function ProfilePage() {
                         <Key className="w-4 h-4" />
                         <span>Export Private Key</span>
                       </button>
-                      <button
-                        onClick={handleLogout}
-                        className="w-full px-4 py-3 text-left text-red-400 hover:bg-gray-700 flex items-center gap-3 transition-colors"
-                      >
-                        <LogOut className="w-4 h-4" />
-                        <span>Logout</span>
-                      </button>
                     </div>
                   </div>
                 )}
@@ -437,9 +430,9 @@ export default function ProfilePage() {
                 <div className="space-y-3">
                   <Button
                     className="w-full bg-usdt hover:bg-primary-600 text-white font-semibold py-3 rounded-xl"
-                    onClick={() => setLoadModalStep('fiat')}
+                    // onClick={() => setLoadModalStep('fiat')}
                   >
-                    <Globe className="w-4 h-4 mr-2" /> Load with Fiat
+                    <Globe className="w-4 h-4 mr-2" /> Load with Fiat(Coming Soon)
                   </Button>
                   <Button
                     variant="outline"

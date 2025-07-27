@@ -27,7 +27,7 @@ import { useRouter } from 'next/navigation'
 import { Navigation } from '../../components/Navigation'
 import { PageHeader } from '../../components/PageHeader'
 import { useUserApi } from '../../hooks/useUserApi'
-import { orderApi } from '../../lib/api'
+import { orderApi, userApi } from '../../lib/api'
 import SellTokenModal from '../../components/SellTokenModal'
 import TransactionSuccessModal from '../../components/TransactionSuccessModal'
 import { usePortfolio } from '../../hooks/usePortfolio'
@@ -96,14 +96,14 @@ export default function PortfolioPage() {
     
     setIsLoadingPnL(true)
     try {
-      const [realizedPnLResponse, volumeResponse, holdingsResponse] = await Promise.all([
+      const [realizedPnLResponse, userProfileResponse, holdingsResponse] = await Promise.all([
         orderApi.getUserRealizedPnL(walletAddress),
-        orderApi.getUserVolume(walletAddress),
+        userApi.getProfile(walletAddress),
         orderApi.getUserHoldings(walletAddress)
       ])
 
       console.log('PnL Response:', realizedPnLResponse)
-      console.log('Volume Response:', volumeResponse)
+      console.log('User Profile Response:', userProfileResponse)
       console.log('Holdings Response:', holdingsResponse)
 
       setPnlData({
@@ -111,10 +111,8 @@ export default function PortfolioPage() {
         totalUnrealizedPnL: 0 // We'll calculate this from holdings if needed
       })
       
-      // Handle volume response structure
-      const totalVolume = volumeResponse.volume?.totalVolume || 
-                         volumeResponse.totalVolume || 
-                         volumeResponse.user?.totalVolume || 0
+      // Get total volume from user profile
+      const totalVolume = userProfileResponse.user?.totalVolume || 0
       
       setVolumeData({
         totalVolume: totalVolume
