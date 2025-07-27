@@ -2,39 +2,45 @@
 
 import React from 'react'
 import { useRouter, usePathname } from 'next/navigation'
-import { BarChart3, Gift, TrendingUp, PieChart, User, Clock } from 'lucide-react'
+import { 
+  Wallet,
+  History,
+  Target,
+  Trophy,
+  Settings
+} from 'lucide-react'
 import { cn } from '../lib/utils'
 
 const navigationItems = [
   {
     id: 'portfolio',
     label: 'Portfolio',
-    icon: PieChart,
+    icon: Wallet,
     href: '/portfolio',
   },
   {
     id: 'history',
     label: 'History',
-    icon: BarChart3,
+    icon: History,
     href: '/history',
   },
   
   {
     id: 'stocks',
     label: 'Stocks',
-    icon: TrendingUp,
+    icon: Target,
     href: '/stocks',
   },
   {
     id: 'rewards',
     label: 'Rewards',
-    icon: Gift,
+    icon: Trophy,
     href: '/rewards',
   },
   {
     id: 'profile',
     label: 'Profile',
-    icon: User,
+    icon: Settings,
     href: '/profile',
   },
 ]
