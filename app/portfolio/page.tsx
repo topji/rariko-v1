@@ -26,8 +26,8 @@ import { formatUSDT, formatCurrency, shortenAddress } from '../../lib/utils'
 import { useRouter } from 'next/navigation'
 import { Navigation } from '../../components/Navigation'
 import { PageHeader } from '../../components/PageHeader'
+import { orderApi } from '../../lib/api'
 import { useUserApi } from '../../hooks/useUserApi'
-import { orderApi, userApi } from '../../lib/api'
 import SellTokenModal from '../../components/SellTokenModal'
 import TransactionSuccessModal from '../../components/TransactionSuccessModal'
 import { usePortfolio } from '../../hooks/usePortfolio'
@@ -96,9 +96,10 @@ export default function PortfolioPage() {
     
     setIsLoadingPnL(true)
     try {
+      const { getProfile } = useUserApi()
       const [realizedPnLResponse, userProfileResponse, holdingsResponse] = await Promise.all([
         orderApi.getUserRealizedPnL(walletAddress),
-        userApi.getProfile(walletAddress),
+        getProfile(walletAddress),
         orderApi.getUserHoldings(walletAddress)
       ])
 
@@ -112,7 +113,7 @@ export default function PortfolioPage() {
       })
       
       // Get total volume from user profile
-      const totalVolume = userProfileResponse.user?.totalVolume || 0
+      const totalVolume = userProfileResponse?.totalVolume || 0
       
       setVolumeData({
         totalVolume: totalVolume

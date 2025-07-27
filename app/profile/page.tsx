@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { Navigation } from '../../components/Navigation'
 import { Card } from '../../components/ui/Card'
 import { Button } from '../../components/ui/Button'
@@ -54,6 +54,7 @@ interface ReferralData {
     username: string;
     displayName: string;
     createdAt: string;
+    totalVolume: number;
   }>;
 }
 
@@ -91,6 +92,9 @@ export default function ProfilePage() {
   const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string>('')
   const [referralData, setReferralData] = useState<ReferralData | null>(null)
 
+  // Ref for menu click outside handling
+  const menuRef = useRef<HTMLDivElement>(null)
+
   // Avatar mock (replace with real avatar if available)
   const avatarUrl = 'https://api.dicebear.com/7.x/adventurer/svg?seed=' + (displayName || 'user')
 
@@ -99,7 +103,24 @@ export default function ProfilePage() {
   const solBalanceUSD = tokenBalances?.find(token => token.symbol === 'SOL')?.marketValue || 0
   
   // SOL transfer hook
-  const { sendSol, isLoading: isTransferLoading, isConfirming } = useSolTransfer()
+  const { sendSol, isLoading: isSendingSol } = useSolTransfer()
+
+  // Handle click outside menu to close it
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setShowMenu(false)
+      }
+    }
+
+    if (showMenu) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [showMenu])
 
   // Load user data when wallet is connected
   useEffect(() => {
@@ -275,7 +296,7 @@ export default function ProfilePage() {
                 {user?.username || displayName}
               </span>
               {/* 3-dot menu */}
-              <div className="relative">
+              <div className="relative" ref={menuRef}>
                 <button 
                   className="p-1 text-gray-400 hover:text-white transition-colors"
                   onClick={() => setShowMenu(!showMenu)}
@@ -285,7 +306,7 @@ export default function ProfilePage() {
                 
                 {/* Dropdown menu */}
                 {showMenu && (
-                  <div className="absolute top-full right-0 mt-2 w-48 bg-gray-800 border border-gray-700 rounded-xl shadow-xl z-50">
+                  <div className="absolute top-full right-0 mt-2 w-48 bg-gray-800 border border-gray-700 rounded-xl shadow-xl z-[9999]">
                     <div className="py-2">
                       <button
                         onClick={handleExportPrivateKey}
@@ -293,6 +314,13 @@ export default function ProfilePage() {
                       >
                         <Key className="w-4 h-4" />
                         <span>Export Private Key</span>
+                      </button>
+                      <button
+                        onClick={handleLogout}
+                        className="w-full px-4 py-3 text-left text-red-400 hover:bg-gray-700 flex items-center gap-3 transition-colors"
+                      >
+                        <LogOut className="w-4 h-4" />
+                        <span>Logout</span>
                       </button>
                     </div>
                   </div>
@@ -381,7 +409,12 @@ export default function ProfilePage() {
                 <div className="text-gray-500 text-sm">Loading...</div>
               ) : referralData?.referredUsers?.map((ref, i) => (
                 <div key={i} className="flex items-center justify-between bg-gray-900/60 rounded-lg px-4 py-2">
-                  <span className="font-mono text-white">{ref.username}</span>
+                  <div className="flex flex-col">
+                    <span className="font-mono text-white">{ref.username}</span>
+                    <span className="text-xs text-gray-400">
+                      ${ref.totalVolume?.toLocaleString() || 0} traded
+                    </span>
+                  </div>
                   <span className="text-xs text-gray-400">
                     {new Date(ref.createdAt).toLocaleDateString()}
                   </span>
@@ -677,16 +710,16 @@ export default function ProfilePage() {
                     !sendAmount || 
                     parseFloat(sendAmount) <= 0 || 
                     parseFloat(sendAmount) > solBalance || 
-                    isTransferLoading ||
+                    isSendingSol ||
                     sendRecipient.length !== 44 || 
                     !sendRecipient.match(/^[1-9A-HJ-NP-Za-km-z]+$/)
                   }
                   className="flex-1 bg-usdt hover:bg-primary-600"
                 >
-                  {isTransferLoading ? (
+                  {isSendingSol ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                      {isConfirming ? 'Confirming...' : 'Processing...'}
+                      Confirming...
                     </>
                   ) : (
                     <>

@@ -245,14 +245,24 @@ router.get('/referrals/:walletAddress', async (req, res) => {
     
     // Get referred users
     const referredUsers = await User.find({ referredBy: user._id })
-      .select('username displayName createdAt')
+      .select('username displayName createdAt totalVolume')
       .sort({ createdAt: -1 });
+    
+    // Calculate total volume traded by referees
+    const refereesTotalVolume = referredUsers.reduce((total, referredUser) => {
+      return total + (referredUser.totalVolume || 0);
+    }, 0);
     
     res.json({
       referralCode: user.referralCode,
       referralCount: user.referralCount,
-      totalVolume: user.totalVolume,
-      referredUsers
+      totalVolume: refereesTotalVolume, // Volume traded by referees, not user's own volume
+      referredUsers: referredUsers.map(user => ({
+        username: user.username,
+        displayName: user.displayName,
+        createdAt: user.createdAt,
+        totalVolume: user.totalVolume || 0
+      }))
     });
   } catch (error) {
     console.error('Error getting referral info:', error);

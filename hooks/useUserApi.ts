@@ -21,6 +21,7 @@ interface ReferralData {
     username: string;
     displayName: string;
     createdAt: string;
+    totalVolume: number;
   }>;
 }
 
