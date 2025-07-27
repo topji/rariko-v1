@@ -20,7 +20,8 @@ import {
   ExternalLink,
   Filter,
   RefreshCw,
-  Loader2
+  Loader2,
+  History
 } from 'lucide-react'
 import { Button } from '../../components/ui/Button'
 import { Card, CardContent } from '../../components/ui/Card'
@@ -155,41 +156,59 @@ export default function DashboardPage() {
           )}
         </PageHeader>
 
-        <div className="px-4 py-6 space-y-6">
-          {/* Filter and Controls */}
+        <div className="px-4 py-6 space-y-8">
+          {/* Hero Section */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
-            className="flex flex-col sm:flex-row items-center justify-between gap-4 p-6 bg-gray-800/50 rounded-2xl border border-gray-700"
+            className="text-center space-y-4"
           >
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-usdt rounded-xl flex items-center justify-center">
-                <BarChart3 className="w-5 h-5 text-white" />
-              </div>
-              <div>
-                <h2 className="text-xl font-bold text-white">Order History</h2>
-                <p className="text-gray-400 text-sm">Live trading activity</p>
-              </div>
+            <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-white via-gray-200 to-gray-400 bg-clip-text text-transparent">
+              History
+            </h1>
+            <p className="text-gray-400 text-lg max-w-2xl mx-auto">
+              Track all trading activity across the platform
+            </p>
+          </motion.div>
+
+          {/* Filter Toggle */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.1 }}
+            className="flex items-center justify-between"
+          >
+            <div className="flex items-center gap-2">
+              <RefreshCw 
+                className={`w-4 h-4 text-gray-400 transition-all duration-300 ${isLoadingOrders ? 'animate-spin' : ''}`} 
+              />
+              <span className="text-sm text-gray-400">
+                {isLoadingOrders ? 'Refreshing...' : 'Live updates'}
+              </span>
             </div>
-            <div className="flex items-center gap-3">
-              <Button
-                variant={filterByMe ? "primary" : "outline"}
-                size="sm"
-                onClick={() => setFilterByMe(!filterByMe)}
-                className="flex items-center gap-2"
+            
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setFilterByMe(false)}
+                className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300 ${
+                  !filterByMe 
+                    ? 'bg-usdt text-white shadow-lg shadow-usdt/25' 
+                    : 'bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700'
+                }`}
               >
-                <Filter className="w-4 h-4" />
-                {filterByMe ? 'My Orders' : 'All Orders'}
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={fetchOrders}
-                className="text-gray-400 hover:text-white"
+                Feed
+              </button>
+              <button
+                onClick={() => setFilterByMe(true)}
+                className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300 ${
+                  filterByMe 
+                    ? 'bg-usdt text-white shadow-lg shadow-usdt/25' 
+                    : 'bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700'
+                }`}
               >
-                <RefreshCw className="w-4 h-4" />
-              </Button>
+                Only Me
+              </button>
             </div>
           </motion.div>
 
@@ -219,22 +238,24 @@ export default function DashboardPage() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.4, delay: index * 0.1 }}
                 >
-                  <Card className="p-6 bg-gray-800/50 border border-gray-700 hover:bg-gray-800/70 transition-all duration-300 hover:scale-[1.02]">
+                  <Card className="p-6 bg-gradient-to-br from-gray-800/50 to-gray-900/50 border border-gray-700/50 hover:border-gray-600/50 hover:bg-gray-800/70 transition-all duration-300 hover:scale-[1.02] backdrop-blur-sm">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-4">
-                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
+                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center shadow-lg ${
                           order.type === 'BUY' 
-                            ? 'bg-green-600' 
-                            : 'bg-red-600'
+                            ? 'bg-gradient-to-br from-green-500 to-green-600 shadow-green-500/25' 
+                            : 'bg-gradient-to-br from-red-500 to-red-600 shadow-red-500/25'
                         }`}>
                           {getOrderIcon(order.type.toLowerCase())}
                         </div>
                         <div className="space-y-1">
                           <div className="font-bold text-white text-lg">
-                            {order.username} {order.type.toLowerCase() === 'buy' ? 'bought' : 'sold'} {order.tokenAmount.toFixed(6)} {order.symbol}
+                            <span className="text-gray-300">{order.username}</span> {order.type.toLowerCase() === 'buy' ? 'bought' : 'sold'} <span className="text-usdt">{order.tokenAmount.toFixed(6)} {order.symbol}</span>
                           </div>
-                          <div className="text-gray-300 text-sm">
-                            Price: ${order.tokenPrice.toFixed(4)} • {formatTimeAgo(new Date(order.timestamp))}
+                          <div className="text-gray-400 text-sm flex items-center gap-2">
+                            <span>${order.tokenPrice.toFixed(4)}</span>
+                            <span className="w-1 h-1 bg-gray-500 rounded-full"></span>
+                            <span>{formatTimeAgo(new Date(order.timestamp))}</span>
                           </div>
                         </div>
                       </div>
@@ -245,10 +266,12 @@ export default function DashboardPage() {
                           ${order.amountInUsd.toFixed(2)}
                         </div>
                         {order.type === 'SELL' && order.realizedPNL && (
-                          <div className={`text-sm font-medium ${
-                            order.realizedPNL >= 0 ? 'text-green-400' : 'text-red-400'
+                          <div className={`text-sm font-medium px-2 py-1 rounded-lg ${
+                            order.realizedPNL >= 0 
+                              ? 'text-green-400 bg-green-400/10' 
+                              : 'text-red-400 bg-red-400/10'
                           }`}>
-                            PnL: {order.realizedPNL >= 0 ? '+' : ''}${order.realizedPNL.toFixed(2)}
+                            {order.realizedPNL >= 0 ? '+' : ''}${order.realizedPNL.toFixed(2)}
                           </div>
                         )}
                       </div>
@@ -263,21 +286,21 @@ export default function DashboardPage() {
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.6, delay: 0.2 }}
             >
-              <Card className="p-12 text-center bg-gray-800/50 border border-gray-700">
-                <div className="w-20 h-20 bg-usdt rounded-full flex items-center justify-center mx-auto mb-6">
-                  <ShoppingCart className="w-10 h-10 text-white" />
-                </div>
-                <h3 className="text-2xl font-bold text-white mb-3">No Orders Found</h3>
-                <p className="text-gray-300 mb-8 text-lg">
-                  {filterByMe ? "You haven't made any trades yet." : "No trading activity yet."}
-                </p>
-                <Button 
-                  onClick={() => router.push('/stocks')}
-                  className="bg-usdt hover:bg-primary-600 text-white font-semibold px-8 py-3 rounded-xl"
-                >
-                  Start Trading
-                </Button>
-              </Card>
+                          <Card className="p-12 text-center bg-gradient-to-br from-gray-800/50 to-gray-900/50 border border-gray-700/50 backdrop-blur-sm">
+              <div className="w-24 h-24 bg-gradient-to-br from-usdt to-green-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg shadow-usdt/25">
+                <History className="w-12 h-12 text-white" />
+              </div>
+              <h3 className="text-2xl font-bold text-white mb-3">No Orders Found</h3>
+              <p className="text-gray-300 mb-8 text-lg">
+                {filterByMe ? "You haven't made any trades yet." : "No trading activity yet."}
+              </p>
+              <Button 
+                onClick={() => router.push('/stocks')}
+                className="bg-gradient-to-r from-usdt to-green-600 hover:from-green-600 hover:to-usdt text-white font-semibold px-8 py-3 rounded-xl shadow-lg shadow-usdt/25 transition-all duration-300 hover:scale-105"
+              >
+                Start Trading
+              </Button>
+            </Card>
             </motion.div>
           )}
 

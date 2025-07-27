@@ -2,6 +2,7 @@ import React from 'react'
 import { useRouter } from 'next/navigation'
 import { useDynamicWallet } from '../hooks/useDynamicWallet'
 import { Logo } from './Logo'
+import { DollarSign } from 'lucide-react'
 
 interface PageHeaderProps {
   showRefresh?: boolean
@@ -13,10 +14,12 @@ interface PageHeaderProps {
 
 export function PageHeader({ showRefresh = false, onRefresh, isRefreshing = false, children, showProfile = false }: PageHeaderProps) {
   const router = useRouter()
-  const { displayName } = useDynamicWallet()
+  const { tokenBalances } = useDynamicWallet()
 
-  // Avatar URL for profile picture
-  const avatarUrl = 'https://api.dicebear.com/7.x/adventurer/svg?seed=' + (displayName || 'user')
+  // Calculate total USD balance
+  const totalUSDBalance = tokenBalances?.reduce((total, token) => {
+    return total + (token.marketValue || 0)
+  }, 0) || 0
 
   return (
     <div className="bg-gray-800 border-b border-gray-700 px-4 py-4">
@@ -52,16 +55,12 @@ export function PageHeader({ showRefresh = false, onRefresh, isRefreshing = fals
             </button>
           )}
           {showProfile && (
-            <button
-              onClick={() => router.push('/profile')}
-              className="w-8 h-8 rounded-full overflow-hidden border-2 border-gray-600 hover:border-usdt transition-colors"
-            >
-              <img
-                src={avatarUrl}
-                alt="Profile"
-                className="w-full h-full object-cover"
-              />
-            </button>
+            <div className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-gray-800 to-gray-700 rounded-xl border border-gray-600 hover:border-usdt transition-all duration-300 hover:shadow-lg hover:shadow-usdt/10 group">
+              <DollarSign className="w-4 h-4 text-usdt" />
+              <div className="text-sm font-bold text-white group-hover:text-usdt transition-colors">
+                ${totalUSDBalance.toFixed(2)}
+              </div>
+            </div>
           )}
         </div>
       </div>

@@ -94,8 +94,9 @@ export default function ProfilePage() {
   // Avatar mock (replace with real avatar if available)
   const avatarUrl = 'https://api.dicebear.com/7.x/adventurer/svg?seed=' + (displayName || 'user')
 
-  // SOL balance
+  // SOL balance and USD value
   const solBalance = tokenBalances?.find(token => token.symbol === 'SOL')?.balance || 0
+  const solBalanceUSD = tokenBalances?.find(token => token.symbol === 'SOL')?.marketValue || 0
   
   // SOL transfer hook
   const { sendSol, isLoading: isTransferLoading, isConfirming } = useSolTransfer()
@@ -326,7 +327,14 @@ export default function ProfilePage() {
           <div className="flex items-center justify-between mb-2">
             <span className="text-gray-400 text-sm">SOL Balance</span>
           </div>
-          <div className="text-3xl font-bold text-white mb-4">{isLoadingTokens ? '...' : solBalance.toFixed(4)} <span className="text-base text-gray-400 font-normal">SOL</span></div>
+          <div className="mb-4">
+            <div className="text-3xl font-bold text-white">
+              {isLoadingTokens ? '...' : `$${solBalanceUSD.toFixed(2)}`}
+            </div>
+            <div className="text-sm text-gray-400 mt-1">
+              {isLoadingTokens ? '...' : `${solBalance.toFixed(4)} SOL`}
+            </div>
+          </div>
           <div className="flex gap-3">
             <Button
               variant="outline"

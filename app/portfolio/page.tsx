@@ -91,26 +91,44 @@ export default function PortfolioPage() {
 
   // Fetch PnL and Volume data
   const fetchPnLAndVolume = async () => {
-    if (!useDynamicWallet().walletAddress) return
+    const walletAddress = useDynamicWallet().walletAddress
+    if (!walletAddress) return
     
     setIsLoadingPnL(true)
     try {
       const [realizedPnLResponse, volumeResponse, holdingsResponse] = await Promise.all([
-        orderApi.getUserRealizedPnL(useDynamicWallet().walletAddress),
-        orderApi.getUserVolume(useDynamicWallet().walletAddress),
-        orderApi.getUserHoldings(useDynamicWallet().walletAddress)
+        orderApi.getUserRealizedPnL(walletAddress),
+        orderApi.getUserVolume(walletAddress),
+        orderApi.getUserHoldings(walletAddress)
       ])
+
+      console.log('PnL Response:', realizedPnLResponse)
+      console.log('Volume Response:', volumeResponse)
+      console.log('Holdings Response:', holdingsResponse)
 
       setPnlData({
         totalRealizedPnL: realizedPnLResponse.totalRealizedPnL || 0,
-        totalUnrealizedPnL: holdingsResponse.totalUnrealizedPnL || 0
+        totalUnrealizedPnL: 0 // We'll calculate this from holdings if needed
       })
       
+      // Handle volume response structure
+      const totalVolume = volumeResponse.volume?.totalVolume || 
+                         volumeResponse.totalVolume || 
+                         volumeResponse.user?.totalVolume || 0
+      
       setVolumeData({
-        totalVolume: volumeResponse.volume?.totalVolume || 0
+        totalVolume: totalVolume
       })
     } catch (error) {
       console.error('Error fetching PnL and Volume data:', error)
+      // Set default values on error
+      setPnlData({
+        totalRealizedPnL: 0,
+        totalUnrealizedPnL: 0
+      })
+      setVolumeData({
+        totalVolume: 0
+      })
     } finally {
       setIsLoadingPnL(false)
     }
@@ -120,6 +138,13 @@ export default function PortfolioPage() {
   useEffect(() => {
     fetchPnLAndVolume()
   }, [useDynamicWallet().walletAddress])
+
+  // Also fetch when portfolio refreshes
+  useEffect(() => {
+    if (!isLoading) {
+      fetchPnLAndVolume()
+    }
+  }, [isLoading])
 
   if (isLoading) {
     return (
@@ -260,9 +285,23 @@ export default function PortfolioPage() {
                 Buy Your First Token
               </Button>
             </Card>
+          ) : holdings.filter(holding => holding.totalValue >= 0.05).length === 0 ? (
+            <Card className="p-8 text-center">
+              <PieChart className="w-12 h-12 mx-auto mb-4 text-gray-500" />
+              <h4 className="text-lg font-semibold text-white mb-2">No Visible Holdings</h4>
+              <p className="text-gray-400 mb-4">Your holdings are below the $0.05 minimum display threshold.</p>
+              <Button 
+                onClick={() => router.push('/stocks')}
+                className="bg-usdt hover:bg-primary-600"
+              >
+                Buy More Tokens
+              </Button>
+            </Card>
           ) : (
           <div className="space-y-3">
-              {holdings.map((holding) => (
+              {holdings
+                .filter(holding => holding.totalValue >= 0.05) // Filter out holdings less than $0.05
+                .map((holding) => (
                 <Card key={holding.contractAddress} className="p-4">
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
