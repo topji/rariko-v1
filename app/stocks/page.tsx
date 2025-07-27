@@ -367,13 +367,13 @@ export default function StocksPage() {
                 >
                   Info
                 </Button>
-                <Button
+              <Button
                   onClick={() => setSelectedToken(token)}
                   className="flex-1 bg-usdt hover:bg-primary-600"
                   disabled={token.error !== undefined}
-                >
+              >
                   {token.error ? 'Data Unavailable' : `Buy ${token.symbol}`}
-                </Button>
+              </Button>
               </div>
             </Card>
             ))}

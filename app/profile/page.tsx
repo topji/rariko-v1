@@ -410,7 +410,7 @@ export default function ProfilePage() {
               ) : referralData?.referredUsers?.map((ref, i) => (
                 <div key={i} className="flex items-center justify-between bg-gray-900/60 rounded-lg px-4 py-2">
                   <div className="flex flex-col">
-                    <span className="font-mono text-white">{ref.username}</span>
+                  <span className="font-mono text-white">{ref.username}</span>
                     <span className="text-xs text-gray-400">
                       ${ref.totalVolume?.toLocaleString() || 0} traded
                     </span>

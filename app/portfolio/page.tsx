@@ -62,6 +62,9 @@ export default function PortfolioPage() {
   })
   const [isLoadingPnL, setIsLoadingPnL] = useState(false)
 
+  // User API hook - moved to top level
+  const { getProfile, loading: userLoading } = useUserApi()
+
   const handleBuyMore = (contractAddress: string) => {
     // Navigate to stocks page with the token pre-selected
     router.push('/stocks')
@@ -96,7 +99,6 @@ export default function PortfolioPage() {
     
     setIsLoadingPnL(true)
     try {
-      const { getProfile } = useUserApi()
       const [realizedPnLResponse, userProfileResponse, holdingsResponse] = await Promise.all([
         orderApi.getUserRealizedPnL(walletAddress),
         getProfile(walletAddress),
@@ -105,6 +107,7 @@ export default function PortfolioPage() {
 
       console.log('PnL Response:', realizedPnLResponse)
       console.log('User Profile Response:', userProfileResponse)
+      console.log('User Profile totalVolume:', userProfileResponse?.totalVolume)
       console.log('Holdings Response:', holdingsResponse)
 
       setPnlData({
@@ -112,7 +115,7 @@ export default function PortfolioPage() {
         totalUnrealizedPnL: 0 // We'll calculate this from holdings if needed
       })
       
-      // Get total volume from user profile
+      // Get total volume from user profile - fix the data access
       const totalVolume = userProfileResponse?.totalVolume || 0
       
       setVolumeData({
