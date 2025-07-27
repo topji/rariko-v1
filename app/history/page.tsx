@@ -25,6 +25,7 @@ import {
 } from 'lucide-react'
 import { Button } from '../../components/ui/Button'
 import { Card, CardContent } from '../../components/ui/Card'
+import { Input } from '../../components/ui/Input'
 import { useDynamicWallet } from '../../hooks/useDynamicWallet'
 import { formatUSDT, formatCurrency, shortenAddress } from '../../lib/utils'
 import { useRouter } from 'next/navigation'
@@ -33,6 +34,7 @@ import WalletCheck from '../../components/WalletCheck'
 import { PageHeader } from '../../components/PageHeader'
 import { useUserApi } from '../../hooks/useUserApi'
 import { orderApi } from '../../lib/api'
+import { useSwapV2 } from '../../hooks/useSwapV2'
 
 export default function DashboardPage() {
   const {
@@ -58,8 +60,18 @@ export default function DashboardPage() {
     hasPrevPage: false
   })
 
+  // Buy modal state
+  const [showBuyModal, setShowBuyModal] = useState(false)
+  const [selectedToken, setSelectedToken] = useState<any>(null)
+  const [buyAmountUSD, setBuyAmountUSD] = useState('')
+  const [quoteData, setQuoteData] = useState<any>(null)
+  const [isProcessingBuy, setIsProcessingBuy] = useState(false)
+
   // User API hook
   const { getProfile, loading: userLoading } = useUserApi()
+  
+  // Swap hook for buy functionality
+  const { buyToken, getQuote, isLoading: isSwapLoading, isConfirming } = useSwapV2()
 
   // Fetch orders from backend
   const fetchOrders = async () => {
@@ -274,6 +286,25 @@ export default function DashboardPage() {
                             {order.realizedPNL >= 0 ? '+' : ''}${order.realizedPNL.toFixed(2)}
                           </div>
                         )}
+                        {/* Buy button - only show in feed mode */}
+                        {!filterByMe && (
+                          <Button
+                            size="sm"
+                            onClick={() => {
+                              setSelectedToken({
+                                symbol: order.symbol,
+                                name: order.symbol,
+                                priceUsd: order.tokenPrice.toString(),
+                                contractAddress: order.tokenAddress,
+                                decimals: 9 // Default decimals
+                              })
+                              setShowBuyModal(true)
+                            }}
+                            className="mt-2 bg-usdt hover:bg-primary-600 text-white text-xs px-3 py-1 h-7"
+                          >
+                            Buy
+                          </Button>
+                        )}
                       </div>
                     </div>
                   </Card>
@@ -338,10 +369,167 @@ export default function DashboardPage() {
             </motion.div>
           )}
         </div>
-        
-        {/* Bottom Navigation */}
-        <Navigation />
-      </div>
+
+      {/* Buy Modal */}
+      {showBuyModal && selectedToken && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <Card className="w-full max-w-md p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-white">Buy {selectedToken.symbol}</h2>
+              <button
+                onClick={() => {
+                  setShowBuyModal(false)
+                  setSelectedToken(null)
+                  setBuyAmountUSD('')
+                  setQuoteData(null)
+                }}
+                className="text-gray-400 hover:text-white"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            
+            {!isConnected && (
+              <div className="mb-4 p-3 bg-red-900/20 border border-red-500/30 rounded-lg">
+                <p className="text-red-400 text-sm">Please connect your wallet to buy tokens</p>
+              </div>
+            )}
+            
+            <div className="space-y-4">
+              <div className="flex items-center justify-between p-3 bg-gray-800 rounded-lg">
+                <span className="text-gray-400">Current Price</span>
+                <span className="font-semibold text-white">${parseFloat(selectedToken.priceUsd).toFixed(4)}</span>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-400 mb-2">
+                  Amount in USD
+                </label>
+                <Input
+                  type="number"
+                  placeholder="0.00"
+                  value={buyAmountUSD}
+                  onChange={(e) => {
+                    setBuyAmountUSD(e.target.value)
+                    const amount = parseFloat(e.target.value)
+                    if (amount >= 1.00) {
+                      // Get quote for the token
+                      getQuote('So11111111111111111111111111111111111111112', selectedToken.contractAddress, (amount * 1e9).toString())
+                        .then(quote => setQuoteData(quote))
+                        .catch(err => {
+                          console.error('Error getting quote:', err)
+                          setQuoteData(null)
+                        })
+                    } else {
+                      setQuoteData(null)
+                    }
+                  }}
+                  className="bg-gray-800 border-gray-700 text-white"
+                />
+                <p className="text-xs text-gray-500 mt-1">Minimum $10 USD</p>
+              </div>
+
+              {/* Quick Amount Buttons */}
+              <div className="grid grid-cols-3 gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setBuyAmountUSD('10')
+                    getQuote('So11111111111111111111111111111111111111112', selectedToken.contractAddress, '10000000000')
+                      .then(quote => setQuoteData(quote))
+                      .catch(err => console.error('Error getting quote:', err))
+                  }}
+                  className="h-8 text-xs"
+                >
+                  $10
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setBuyAmountUSD('20')
+                    getQuote('So11111111111111111111111111111111111111112', selectedToken.contractAddress, '20000000000')
+                      .then(quote => setQuoteData(quote))
+                      .catch(err => console.error('Error getting quote:', err))
+                  }}
+                  className="h-8 text-xs"
+                >
+                  $20
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setBuyAmountUSD('50')
+                    getQuote('So11111111111111111111111111111111111111112', selectedToken.contractAddress, '50000000000')
+                      .then(quote => setQuoteData(quote))
+                      .catch(err => console.error('Error getting quote:', err))
+                  }}
+                  className="h-8 text-xs"
+                >
+                  $50
+                </Button>
+              </div>
+
+              {/* Estimated Output */}
+              {quoteData && (
+                <div className="p-3 bg-gray-800 rounded-lg">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-gray-400">Estimated Output</span>
+                    <span className="text-white">
+                      {(parseFloat(quoteData.outAmount) / Math.pow(10, selectedToken.decimals)).toFixed(6)} {selectedToken.symbol}
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* Buy Button */}
+              <Button
+                onClick={async () => {
+                  if (!buyAmountUSD || parseFloat(buyAmountUSD) < 10) {
+                    alert('Please enter a valid amount (minimum $10)')
+                    return
+                  }
+                  
+                  setIsProcessingBuy(true)
+                  try {
+                    const result = await buyToken(selectedToken.contractAddress, parseFloat(buyAmountUSD))
+                    console.log('Buy successful:', result)
+                    setShowBuyModal(false)
+                    setSelectedToken(null)
+                    setBuyAmountUSD('')
+                    setQuoteData(null)
+                    // Optionally refresh orders
+                    fetchOrders()
+                  } catch (error) {
+                    console.error('Buy failed:', error)
+                    alert('Failed to buy token. Please try again.')
+                  } finally {
+                    setIsProcessingBuy(false)
+                  }
+                }}
+                disabled={!isConnected || !buyAmountUSD || parseFloat(buyAmountUSD) < 10 || isProcessingBuy || isSwapLoading}
+                className="w-full bg-usdt hover:bg-primary-600 text-white font-semibold py-3 rounded-xl disabled:opacity-50"
+              >
+                {isProcessingBuy || isSwapLoading ? (
+                  <div className="flex items-center justify-center gap-2">
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    {isConfirming ? 'Confirming...' : 'Processing...'}
+                  </div>
+                ) : (
+                  `Buy ${selectedToken.symbol}`
+                )}
+              </Button>
+            </div>
+          </Card>
+        </div>
+      )}
+
+      <Navigation />
+    </div>
     </WalletCheck>
   )
 } 
