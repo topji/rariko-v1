@@ -112,14 +112,19 @@ export default function ProfilePage() {
         setShowMenu(false)
       }
     }
-
+    
     if (showMenu) {
       document.addEventListener('mousedown', handleClickOutside)
     }
-
+    
     return () => {
       document.removeEventListener('mousedown', handleClickOutside)
     }
+  }, [showMenu])
+
+  // Debug menu state
+  useEffect(() => {
+    console.log('Menu state changed:', showMenu)
   }, [showMenu])
 
   // Load user data when wallet is connected
@@ -180,11 +185,23 @@ export default function ProfilePage() {
     }
   }
 
-  const handleExportPrivateKey = () => {
-    if (primaryWallet) {
-      initExportProcess()
+  const handleExportPrivateKey = async () => {
+    try {
+      if (!primaryWallet?.address) {
+        console.error('No primary wallet found')
+        alert('No wallet connected. Please connect your wallet first.')
+        return
+      }
+      
+      console.log('Starting private key export process...')
+      await initExportProcess()
+      console.log('Private key export process completed')
+    } catch (error) {
+      console.error('Error exporting private key:', error)
+      alert('Failed to export private key. Please try again.')
+    } finally {
+      setShowMenu(false)
     }
-    setShowMenu(false)
   }
 
   const handleLogout = () => {
@@ -299,7 +316,10 @@ export default function ProfilePage() {
               <div className="relative" ref={menuRef}>
                 <button 
                   className="p-1 text-gray-400 hover:text-white transition-colors"
-                  onClick={() => setShowMenu(!showMenu)}
+                  onClick={() => {
+                    console.log('Menu button clicked, current state:', showMenu)
+                    setShowMenu(!showMenu)
+                  }}
                 >
                   <MoreVertical className="w-5 h-5" />
                 </button>
