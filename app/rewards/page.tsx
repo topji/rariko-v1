@@ -204,13 +204,13 @@ export default function RewardsPage() {
             </div>
             <div className="text-2xl font-bold text-white mb-1">
               {mockData.rizzBalance.toLocaleString()}
-            </div>
+          </div>
             <div className="text-xs text-usdt">
               +{effectiveRate.toFixed(1)} per $100 traded
-            </div>
-          </Card>
+          </div>
+        </Card>
 
-          {/* Multiplier Card */}
+        {/* Multiplier Card */}
           <Card className="bg-gradient-to-br from-purple-500/20 to-blue-600/20 border border-purple-500/30 backdrop-blur-xl rounded-2xl p-4">
             <div className="flex items-center gap-3 mb-3">
               <div className="w-8 h-8 bg-purple-500 rounded-lg flex items-center justify-center">
@@ -223,8 +223,8 @@ export default function RewardsPage() {
             </div>
             <div className="text-xs text-purple-400">
               Max: {mockData.maxMultiplier}x
-            </div>
-          </Card>
+          </div>
+        </Card>
         </div>
 
         {/* Stats Cards */}
@@ -310,7 +310,7 @@ export default function RewardsPage() {
                           <span className="text-xs text-usdt">
                             {Math.round(progressPercentage)}%
                           </span>
-                        </div>
+                  </div>
                         <div className="w-full h-2 bg-gray-700 rounded-full overflow-hidden">
                           <div
                             className={`h-full rounded-full transition-all duration-500 ${
@@ -371,8 +371,8 @@ export default function RewardsPage() {
                 <div className="text-xs text-gray-400">
                   Earn 1 ticket per $1,000 traded
                 </div>
-              </div>
-            </Card>
+                </div>
+              </Card>
 
             {/* How It Works */}
             <Card className="bg-gray-800/50 border border-gray-700/50 backdrop-blur-xl rounded-2xl p-6">
@@ -396,8 +396,8 @@ export default function RewardsPage() {
                 <div className="flex items-center gap-3">
                   <div className="w-6 h-6 bg-usdt rounded-full flex items-center justify-center text-xs font-bold text-white">4</div>
                   <span className="text-gray-300">Winners announced on {formatDate(mockData.raffleInfo.endDate)}</span>
-                </div>
-              </div>
+          </div>
+                  </div>
             </Card>
 
             {/* Current Stats */}
@@ -407,7 +407,7 @@ export default function RewardsPage() {
                 <div className="text-center">
                   <div className="text-2xl font-bold text-white">{mockData.raffleInfo.totalTickets}</div>
                   <div className="text-sm text-gray-400">Total Tickets</div>
-                </div>
+                  </div>
                 <div className="text-center">
                   <div className="text-2xl font-bold text-purple-400">{mockData.raffleInfo.userTickets}</div>
                   <div className="text-sm text-gray-400">Your Tickets</div>
@@ -418,8 +418,8 @@ export default function RewardsPage() {
                 <div className="text-lg font-bold text-purple-400">
                   {((mockData.raffleInfo.userTickets / mockData.raffleInfo.totalTickets) * 100).toFixed(2)}%
                 </div>
-              </div>
-            </Card>
+                </div>
+              </Card>
 
             {/* Action Button */}
             <Button className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold py-4 rounded-xl">

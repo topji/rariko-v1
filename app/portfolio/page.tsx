@@ -95,28 +95,39 @@ export default function PortfolioPage() {
   // Fetch PnL and Volume data
   const fetchPnLAndVolume = async () => {
     const walletAddress = useDynamicWallet().walletAddress
-    if (!walletAddress) return
+    console.log('Fetching PnL and Volume for wallet:', walletAddress)
+    
+    if (!walletAddress) {
+      console.log('No wallet address found, skipping fetch')
+      return
+    }
     
     setIsLoadingPnL(true)
     try {
+      console.log('Making API calls...')
       const [realizedPnLResponse, userProfileResponse, holdingsResponse] = await Promise.all([
         orderApi.getUserRealizedPnL(walletAddress),
         getProfile(walletAddress),
         orderApi.getUserHoldings(walletAddress)
       ])
 
+      console.log('=== API RESPONSES ===')
       console.log('PnL Response:', realizedPnLResponse)
       console.log('User Profile Response:', userProfileResponse)
       console.log('User Profile totalVolume:', userProfileResponse?.totalVolume)
+      console.log('User Profile type:', typeof userProfileResponse)
+      console.log('User Profile keys:', userProfileResponse ? Object.keys(userProfileResponse) : 'null')
       console.log('Holdings Response:', holdingsResponse)
+      console.log('===================')
 
       setPnlData({
-        totalRealizedPnL: realizedPnLResponse.totalRealizedPnL || 28.76,
+        totalRealizedPnL: realizedPnLResponse.totalRealizedPnL || 0,
         totalUnrealizedPnL: 0 // We'll calculate this from holdings if needed
       })
       
-      // Get total volume from user profile - fix the data access
-      const totalVolume = userProfileResponse?.totalVolume || 451.35
+      // Get total volume from user profile - use actual data from backend
+      const totalVolume = userProfileResponse?.totalVolume || 0
+      console.log('Setting total volume to:', totalVolume)
       
       setVolumeData({
         totalVolume: totalVolume
