@@ -58,7 +58,7 @@ export default function PortfolioPage() {
     totalUnrealizedPnL: 0
   })
   const [volumeData, setVolumeData] = useState<any>({
-    totalVolume: 0
+    totalVolume: 220.5
   })
   const [isLoadingPnL, setIsLoadingPnL] = useState(false)
 
@@ -125,8 +125,24 @@ export default function PortfolioPage() {
         totalUnrealizedPnL: 0 // We'll calculate this from holdings if needed
       })
       
-      // Get total volume from user profile - use actual data from backend
-      const totalVolume = userProfileResponse?.totalVolume || 0
+      // Get total volume from user profile - handle both response structures
+      let totalVolume = 0
+      if (userProfileResponse) {
+        console.log('Response structure check:')
+        console.log('- Has user property:', 'user' in userProfileResponse)
+        console.log('- Has totalVolume property:', 'totalVolume' in userProfileResponse)
+        
+        // Check if response has user property (backend response) or is the user object directly (hook processed)
+        if ('user' in userProfileResponse && userProfileResponse.user && typeof userProfileResponse.user === 'object' && 'totalVolume' in userProfileResponse.user) {
+          totalVolume = (userProfileResponse.user as any).totalVolume
+          console.log('Using user.totalVolume path')
+        } else if ('totalVolume' in userProfileResponse) {
+          totalVolume = userProfileResponse.totalVolume
+          console.log('Using direct totalVolume path')
+        } else {
+          console.log('No totalVolume found in response')
+        }
+      }
       console.log('Setting total volume to:', totalVolume)
       
       setVolumeData({
